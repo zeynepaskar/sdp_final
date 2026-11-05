@@ -22,7 +22,18 @@ public class CombatManagerTest {
         manager.addEnemy(boss);
 
         System.out.println("Enemies: " + manager.getEnemyCount());
+        // Test Thanos attack
+        Enemy target = manager.playerAttack(
+                90, 90,
+                65,
+                35
+        );
 
+        System.out.println("Target found: " + (target != null));
+
+        if (target != null) {
+            System.out.println("Target HP: " + target.getHealth());
+        }
         // Thanos attacks the basic enemy
         manager.damageEnemy(enemy, 30);
 

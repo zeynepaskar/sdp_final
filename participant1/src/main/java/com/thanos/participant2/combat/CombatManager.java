@@ -59,4 +59,55 @@ public class CombatManager {
     public int getEnemyCount() {
         return enemies.size();
     }
+
+    // Thanos attacks the nearest enemy within range
+    public Enemy playerAttack(
+            float playerX,
+            float playerY,
+            float attackRange,
+            float damage) {
+
+        if (!Float.isFinite(playerX)
+                || !Float.isFinite(playerY)
+                || !Float.isFinite(attackRange)
+                || !Float.isFinite(damage)
+                || attackRange < 0
+                || damage < 0) {
+            throw new IllegalArgumentException("Invalid attack parameters");
+        }
+
+        Enemy target = null;
+        double closestDistance = Double.MAX_VALUE;
+
+        // Player dimensions: 30 x 42
+        float playerCenterX = playerX + 15;
+        float playerCenterY = playerY + 21;
+
+        // Enemy render dimensions: 28 x 32
+        for (Enemy enemy : enemies) {
+            if (!enemy.isAlive()) {
+                continue;
+            }
+
+            float enemyCenterX = enemy.getX() + 14;
+            float enemyCenterY = enemy.getY() + 16;
+
+            double distance = Math.hypot(
+                    playerCenterX - enemyCenterX,
+                    playerCenterY - enemyCenterY
+            );
+
+            if (distance <= attackRange && distance < closestDistance) {
+                closestDistance = distance;
+                target = enemy;
+            }
+        }
+
+        if (target != null) {
+            damageEnemy(target, damage);
+        }
+
+        return target;
+    }
+
 }
