@@ -28,6 +28,14 @@ public enum InfinityStone {
     public int rgba() { return rgba; }
     public String effect() { return effect; }
 
+    /** Finds a stone by its display name, e.g. "Soul Stone" as other modules spell it. */
+    public static InfinityStone fromDisplayName(String name) {
+        for (InfinityStone stone : values()) {
+            if (stone.displayName.equalsIgnoreCase(name)) return stone;
+        }
+        throw new IllegalArgumentException("Unknown stone: " + name);
+    }
+
     /** Wraps the attack in this stone's decorator. */
     public Attack empower(Attack attack) { return decorator.apply(attack); }
 }
