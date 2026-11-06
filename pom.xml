@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>participant1</module>
+        <module>participant2</module>
         <module>desktop</module>
     </modules>
     <properties>
