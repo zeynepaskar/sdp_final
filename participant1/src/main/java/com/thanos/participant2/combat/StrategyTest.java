@@ -7,13 +7,14 @@ import com.thanos.participant2.strategy.CombatStrategy;
 import com.thanos.participant2.strategy.MeleeAttackStrategy;
 import com.thanos.participant2.strategy.RangedAttackStrategy;
 import com.thanos.participant2.strategy.HeavyAttackStrategy;
+import com.thanos.participant2.enemies.BossType;
 
 public class StrategyTest {
 
     public static void main(String[] args) {
 
-        Enemy boss = new BossEnemy(100, 100);
-
+        Enemy boss = new BossEnemy(
+                100, 100, BossType.CHAMPION );
         CombatStrategy strategy = new MeleeAttackStrategy();
 
         System.out.println("Melee damage: "

@@ -6,6 +6,7 @@ import com.thanos.participant2.enemies.BasicEnemy;
 import com.thanos.participant2.enemies.BossEnemy;
 import com.thanos.participant2.strategy.HeavyAttackStrategy;
 import com.thanos.participant2.strategy.MeleeAttackStrategy;
+import com.thanos.participant2.enemies.BossType;
 
 public class CombatManagerTest {
 
@@ -15,8 +16,9 @@ public class CombatManagerTest {
 
         // Create enemies
         Enemy enemy = new BasicEnemy(100, 100);
-        Enemy boss = new BossEnemy(200, 200);
-
+        Enemy boss = new BossEnemy(
+                200, 200, BossType.CHAMPION
+        );
         // Add enemies to the game
         manager.addEnemy(enemy);
         manager.addEnemy(boss);
