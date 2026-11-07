@@ -1,6 +1,6 @@
 package com.thanos.participant3;
 
-/** Minimal fighter contract; replace with participant 2's shared type once it exists. */
+/** Minimal fighter contract until participant 2's shared type exists. */
 public interface Combatant {
     String name();
     int health();

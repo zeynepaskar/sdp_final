@@ -24,10 +24,7 @@ import com.thanos.participant3.ui.ConsoleLog;
 import com.thanos.participant3.ui.Hud;
 import com.thanos.participant3.ui.HudModel;
 
-/**
- * Standalone window to try participant 3's part: stones, inventory, abilities,
- * Decorator attacks and the HUD as an Observer.
- */
+/** Standalone libGDX launcher for the HUD, Inventory and decorated attacks. */
 public final class HudDemo extends ApplicationAdapter {
     private static final String[][] ENEMIES = {{"Iron Man", "300", "15"}, {"Thor", "400", "25"},
             {"Captain America", "350", "30"}};
@@ -67,7 +64,6 @@ public final class HudDemo extends ApplicationAdapter {
         shapes.setProjectionMatrix(viewport.getCamera().combined);
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
-        // The enemy bar reads the fighter directly, so it keeps moving even when the HUD is unsubscribed.
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(Hud.INK);
         shapes.rect(440, 420, 400, 24);

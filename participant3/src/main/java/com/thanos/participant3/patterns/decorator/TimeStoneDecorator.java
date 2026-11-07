@@ -1,6 +1,6 @@
 package com.thanos.participant3.patterns.decorator;
 
-/** Time Stone: ages the target, so its next counterattack is weaker. */
+/** Decorator: weakens the target's next counterattack by a fixed percent. */
 public final class TimeStoneDecorator extends AttackDecorator {
     public static final int SLOW_PERCENT = 25;
 

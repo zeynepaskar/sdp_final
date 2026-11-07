@@ -1,6 +1,6 @@
 package com.thanos.participant3.patterns.decorator;
 
-/** Soul Stone: heals the attacker for part of the damage dealt. */
+/** Decorator: adds lifesteal. */
 public final class SoulStoneDecorator extends AttackDecorator {
     public static final int LIFESTEAL_PERCENT = 30;
 

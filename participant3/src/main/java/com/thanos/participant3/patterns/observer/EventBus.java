@@ -3,7 +3,7 @@ package com.thanos.participant3.patterns.observer;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Subject: game logic publishes here and never needs to know who is listening. */
+/** Observer subject: publishers never know who listens. */
 public final class EventBus {
     private final List<GameEventListener> listeners = new ArrayList<>();
 

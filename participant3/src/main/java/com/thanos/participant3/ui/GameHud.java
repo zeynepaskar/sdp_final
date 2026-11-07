@@ -8,10 +8,7 @@ import com.thanos.participant3.inventory.Inventory;
 import com.thanos.participant3.patterns.observer.EventBus;
 import com.thanos.participant3.stones.InfinityStone;
 
-/**
- * Everything the game needs from participant 3 in one object: event bus, inventory and HUD.
- * Create it in create(), call render after the world is drawn, dispose it with the game.
- */
+/** Facade for participant 1: EventBus, Inventory and HUD in one object. */
 public final class GameHud implements Disposable {
     private final EventBus events = new EventBus();
     private final Combatant thanos;
@@ -37,7 +34,6 @@ public final class GameHud implements Disposable {
     public Inventory inventory() { return inventory; }
     public Combatant thanos() { return thanos; }
 
-    /** Gives Thanos the next stone in story order; returns false once all six are collected. */
     public boolean awardNextStone() {
         for (InfinityStone stone : InfinityStone.values()) {
             if (!inventory.has(stone)) return inventory.addStone(stone);

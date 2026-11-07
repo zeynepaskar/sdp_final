@@ -1,6 +1,6 @@
 package com.thanos.participant3.patterns.decorator;
 
-/** Power Stone: one and a half times the damage. */
+/** Decorator: damage x1.5. */
 public final class PowerStoneDecorator extends AttackDecorator {
     public PowerStoneDecorator(Attack wrapped) { super(wrapped); }
 

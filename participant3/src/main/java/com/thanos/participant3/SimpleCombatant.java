@@ -1,6 +1,6 @@
 package com.thanos.participant3;
 
-/** Plain fighter with health and defense; stands in for participant 2's characters until they exist. */
+/** Plain Combatant until participant 2's characters exist. */
 public final class SimpleCombatant implements Combatant {
     private final String name;
     private final int maxHealth;

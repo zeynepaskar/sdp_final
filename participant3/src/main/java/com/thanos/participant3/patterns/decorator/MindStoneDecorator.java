@@ -1,6 +1,6 @@
 package com.thanos.participant3.patterns.decorator;
 
-/** Mind Stone: stuns the target for one more turn. */
+/** Decorator: adds a stun turn. */
 public final class MindStoneDecorator extends AttackDecorator {
     public MindStoneDecorator(Attack wrapped) { super(wrapped); }
 

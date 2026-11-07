@@ -1,6 +1,6 @@
 package com.thanos.participant3.patterns.decorator;
 
-/** Space Stone: the hit comes through a rift, so it cannot be blocked. */
+/** Decorator: the hit cannot be blocked. */
 public final class SpaceStoneDecorator extends AttackDecorator {
     public SpaceStoneDecorator(Attack wrapped) { super(wrapped); }
 

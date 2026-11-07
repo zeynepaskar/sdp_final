@@ -1,6 +1,6 @@
 package com.thanos.participant3.patterns.observer;
 
-/** Something that happened in the game; source is who it happened to, value is the number involved. */
+/** Immutable event passed through the EventBus. */
 public record GameEvent(GameEventType type, String source, String message, int value) {
     public GameEvent {
         if (type == null || source == null || source.isBlank() || message == null || message.isBlank()) {

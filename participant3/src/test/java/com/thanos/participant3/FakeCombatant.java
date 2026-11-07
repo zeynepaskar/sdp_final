@@ -1,6 +1,6 @@
 package com.thanos.participant3;
 
-/** Simple fighter for tests until participant 2's characters exist. */
+/** Test Combatant. */
 public final class FakeCombatant implements Combatant {
     private final String name;
     private final int maxHealth;

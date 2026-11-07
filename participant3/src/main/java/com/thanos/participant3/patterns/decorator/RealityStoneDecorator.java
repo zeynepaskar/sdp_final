@@ -1,6 +1,6 @@
 package com.thanos.participant3.patterns.decorator;
 
-/** Reality Stone: rewrites the rules, so the target's defense does not count. */
+/** Decorator: ignores the target's defense. */
 public final class RealityStoneDecorator extends AttackDecorator {
     public RealityStoneDecorator(Attack wrapped) { super(wrapped); }
 
