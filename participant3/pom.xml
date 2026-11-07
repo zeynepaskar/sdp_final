@@ -70,7 +70,7 @@
                             </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.thanos.participant3.demo.HudDemo</mainClass>
+                                    <mainClass>com.thanos.participant3.demo.BattleDemo</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

@@ -5,4 +5,4 @@ if not exist target\participant3-1.0-SNAPSHOT-demo.jar (
     pause
     exit /b 1
 )
-java --enable-native-access=ALL-UNNAMED -cp target\participant3-1.0-SNAPSHOT-demo.jar com.thanos.participant3.demo.BattleDemo %*
+java --enable-native-access=ALL-UNNAMED -jar target\participant3-1.0-SNAPSHOT-demo.jar %*
