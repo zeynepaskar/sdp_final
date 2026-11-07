@@ -1,0 +1,88 @@
+@startuml observer
+!include style.iuml
+
+title Participant 3: Observer\nTHANOS: THE INFINITY QUEST
+
+package "Publishers" {
+  class Inventory {
+    +addStone(stone)
+    +spendEnergy(amount)
+  }
+  class Thanos {
+    +gainExperience(amount)
+  }
+  class HitResolver {
+    +resolve(attacker, target, attack)
+  }
+  class SimpleTurnBattle {
+    +enemyTurn()
+  }
+}
+
+class EventBus <<Subject>> {
+  -listeners : List<GameEventListener>
+  +subscribe(listener)
+  +unsubscribe(listener)
+  +publish(event)
+}
+
+class GameEvent <<record>> {
+  type : GameEventType
+  source : String
+  message : String
+  value : int
+}
+
+enum GameEventType {
+  DAMAGE, HEAL, HEALTH_CHANGED
+  ENERGY_CHANGED, STONE_ACQUIRED
+  BATTLE_WON, BATTLE_LOST, ...
+  XP_GAINED, LEVEL_UP, PORTAL
+}
+
+interface GameEventListener <<Observer>> {
+  +onEvent(event)
+}
+
+package "Observers" {
+  class HudModel {
+    HUD snapshot
+  }
+  class BattleMessages {
+    lines in the battle box
+  }
+  class StoneRewards {
+    stone reveal animation
+  }
+  class SoulHarvest {
+    heals on BATTLE_WON
+  }
+  class ConsoleLog {
+    prints every event
+  }
+}
+
+Inventory ..> EventBus : STONE_ACQUIRED,\nENERGY_CHANGED
+Thanos ..> EventBus : XP_GAINED,\nLEVEL_UP
+HitResolver ..> EventBus : DAMAGE, HEAL,\nPORTAL
+SimpleTurnBattle ..> EventBus : BATTLE_WON,\nBATTLE_LOST
+
+EventBus o-- "*" GameEventListener : listeners
+EventBus ..> GameEvent : creates
+GameEvent --> GameEventType
+
+HudModel ..|> GameEventListener
+BattleMessages ..|> GameEventListener
+StoneRewards ..|> GameEventListener
+SoulHarvest ..|> GameEventListener
+ConsoleLog ..|> GameEventListener
+
+note right of EventBus
+  Publishers never know who listens.
+  Inventory also subscribes (lambda)
+  to LEVEL_UP to raise max energy.
+  publish() iterates over a copy, so a
+  listener may unsubscribe while notified.
+end note
+
+@enduml

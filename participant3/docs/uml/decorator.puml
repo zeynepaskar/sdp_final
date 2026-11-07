@@ -1,0 +1,125 @@
+@startuml decorator
+!include style.iuml
+
+title Participant 3: Decorator\nTHANOS: THE INFINITY QUEST
+
+package "Uses attacks" {
+  class Inventory {
+    +empower(attack) : Attack
+    +use(ability, attack) : Optional<Attack>
+  }
+  class AbilityBook {
+    +forStones(stones) : List<Ability>
+  }
+  class Ability <<record>> {
+    name, stone, energyCost
+    +apply(attack) : Attack
+  }
+  enum InfinityStone {
+    SOUL, POWER, TIME
+    SPACE, REALITY, MIND
+    +empower(attack) : Attack
+  }
+}
+
+interface Attack <<Component>> {
+  +damage() : int
+  +description() : String
+  +lifestealPercent() : int
+  +selfHeal() : int
+  +rewindPercent() : int
+  +ignoresDefense() : boolean
+  +unblockable() : boolean
+  +slowPercent() : int
+  +stunTurns() : int
+}
+
+class BasicAttack <<ConcreteComponent>> {
+  name : String
+  damage : int
+}
+
+abstract class AttackDecorator <<Decorator>> {
+  #wrapped : Attack
+  +damage() : int
+}
+
+package "Stone decorators" {
+  class SoulStoneDecorator <<ConcreteDecorator>> {
+    lifesteal +30%
+  }
+  class PowerStoneDecorator <<ConcreteDecorator>> {
+    damage x1.5
+  }
+  class TimeStoneDecorator <<ConcreteDecorator>> {
+    counterattack -25%
+  }
+  class SpaceStoneDecorator <<ConcreteDecorator>> {
+    unblockable
+  }
+  class RealityStoneDecorator <<ConcreteDecorator>> {
+    ignores defense
+  }
+  class MindStoneDecorator <<ConcreteDecorator>> {
+    stun +1 turn
+  }
+}
+
+package "Ability decorators" {
+  class DamageScaleDecorator <<ConcreteDecorator>> {
+    damage x percent
+  }
+  class RewindDecorator <<ConcreteDecorator>> {
+    undo last wound
+  }
+  class SelfHealDecorator <<ConcreteDecorator>> {
+    flat heal
+  }
+  class WeakenDecorator <<ConcreteDecorator>> {
+    counterattack -n%
+  }
+}
+
+package "Applies attacks" {
+  class HitResolver {
+    +resolve(attacker, target, attack) : int
+  }
+  interface Portal {
+    +opensFor(target) : boolean
+  }
+  class SpacePortal
+}
+
+Inventory ..> AbilityBook
+AbilityBook ..> Ability : 3 per stone
+Ability --> InfinityStone
+InfinityStone ..> AttackDecorator : wraps in\nits decorator
+
+BasicAttack ..|> Attack
+AttackDecorator ..|> Attack
+AttackDecorator o-- "1" Attack : wrapped
+
+SoulStoneDecorator --|> AttackDecorator
+PowerStoneDecorator --|> AttackDecorator
+TimeStoneDecorator --|> AttackDecorator
+SpaceStoneDecorator --|> AttackDecorator
+RealityStoneDecorator --|> AttackDecorator
+MindStoneDecorator --|> AttackDecorator
+DamageScaleDecorator --|> AttackDecorator
+RewindDecorator --|> AttackDecorator
+SelfHealDecorator --|> AttackDecorator
+WeakenDecorator --|> AttackDecorator
+
+HitResolver ..> Attack : reads the\nstacked effects
+HitResolver --> Portal
+SpacePortal ..|> Portal
+
+note right of AttackDecorator
+  Each decorator changes one effect
+  and forwards the rest. Abilities stack them,
+  e.g. Rewind:
+  new RewindDecorator(
+    new DamageScaleDecorator(punch, 50), 100)
+end note
+
+@enduml
