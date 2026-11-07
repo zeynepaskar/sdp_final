@@ -7,16 +7,13 @@ import com.thanos.participant3.patterns.observer.GameEventListener;
 import com.thanos.participant3.stones.InfinityStone;
 import java.util.*;
 
-/**
- * Observer behind the HUD: keeps a snapshot that changes only when an event arrives,
- * so an unsubscribed HUD simply freezes while the game goes on.
- */
+/** Observer: HUD snapshot that changes only on events. */
 public final class HudModel implements GameEventListener {
     private final Combatant hero;
     private final Inventory inventory;
     private final int feedSize;
     private final Deque<String> feed = new ArrayDeque<>();
-    private int health, maxHealth, energy;
+    private int health, maxHealth, energy, maxEnergy;
     private Set<InfinityStone> stones = Set.of();
 
     public HudModel(Combatant hero, Inventory inventory, int feedSize) {
@@ -39,16 +36,16 @@ public final class HudModel implements GameEventListener {
     public int health() { return health; }
     public int maxHealth() { return maxHealth; }
     public int energy() { return energy; }
-    public int maxEnergy() { return Inventory.MAX_ENERGY; }
+    public int maxEnergy() { return maxEnergy; }
     public boolean hasStone(InfinityStone stone) { return stones.contains(stone); }
     public int stoneCount() { return stones.size(); }
-    /** Newest first. */
     public List<String> feed() { return List.copyOf(feed); }
 
     private void refresh() {
         health = hero.health();
         maxHealth = hero.maxHealth();
         energy = inventory.energy();
+        maxEnergy = inventory.maxEnergy();
         stones = inventory.stones();
     }
 }

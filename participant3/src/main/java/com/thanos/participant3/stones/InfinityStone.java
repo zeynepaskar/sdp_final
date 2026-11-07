@@ -1,9 +1,10 @@
 package com.thanos.participant3.stones;
 
+import com.thanos.participant3.inventory.Inventory;
 import com.thanos.participant3.patterns.decorator.*;
 import java.util.function.UnaryOperator;
 
-/** The six stones in the order Thanos collects them in The Thanos Quest. */
+/** The six stones with their colour, decorator and passive text. */
 public enum InfinityStone {
     SOUL("Soul Stone", 0xF39C12FF, "Heals Thanos for part of the damage", SoulStoneDecorator::new),
     POWER("Power Stone", 0x8E44ADFF, "Raises damage", PowerStoneDecorator::new),
@@ -28,7 +29,6 @@ public enum InfinityStone {
     public int rgba() { return rgba; }
     public String effect() { return effect; }
 
-    /** Finds a stone by its display name, e.g. "Soul Stone" as other modules spell it. */
     public static InfinityStone fromDisplayName(String name) {
         for (InfinityStone stone : values()) {
             if (stone.displayName.equalsIgnoreCase(name)) return stone;
@@ -36,6 +36,28 @@ public enum InfinityStone {
         throw new IllegalArgumentException("Unknown stone: " + name);
     }
 
-    /** Wraps the attack in this stone's decorator. */
+    public String passiveName() {
+        return switch (this) {
+            case SOUL -> "Harvest";
+            case POWER -> "Might";
+            case TIME -> "Quickening";
+            case SPACE -> "Portal";
+            case REALITY -> "Bent Rules";
+            case MIND -> "Foresight";
+        };
+    }
+
+    public String passive() {
+        return passiveName() + ": " + switch (this) {
+            case SOUL -> "each victory heals " + SoulHarvest.HEAL_PERCENT + "% of health";
+            case POWER -> "every blow deals " + (Inventory.POWER_DAMAGE_PERCENT - 100) + "% more damage";
+            case TIME -> "+" + Inventory.TIME_ENERGY_BONUS + " energy every turn";
+            case SPACE -> SpacePortal.CHANCE_PERCENT + "% of enemy blows miss, "
+                    + SpacePortal.RETURN_PERCENT + "% of them hit back";
+            case REALITY -> "abilities cost " + Inventory.REALITY_DISCOUNT + " less energy";
+            case MIND -> "shows how hard the enemy will hit next";
+        };
+    }
+
     public Attack empower(Attack attack) { return decorator.apply(attack); }
 }

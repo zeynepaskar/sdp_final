@@ -36,7 +36,7 @@ class InventoryTest {
         for (InfinityStone stone : InfinityStone.values()) inventory.addStone(stone);
 
         assertTrue(inventory.isComplete());
-        assertEquals(6, inventory.abilities().size());
+        assertEquals(18, inventory.abilities().size());
     }
 
     @Test
@@ -44,7 +44,7 @@ class InventoryTest {
         inventory.addStone(InfinityStone.TIME);
         inventory.addStone(InfinityStone.SOUL);
 
-        assertEquals(List.of("Soul Drain", "Aging"), inventory.abilities().stream().map(Ability::name).toList());
+        assertEquals(List.of("Soul Drain", "Life Siphon", "Soul Mend", "Aging", "Rapid Decay", "Rewind"), inventory.abilities().stream().map(Ability::name).toList());
     }
 
     @Test
@@ -81,9 +81,9 @@ class InventoryTest {
     void energyStaysWithinLimits() {
         inventory.restoreEnergy(500);
 
-        assertEquals(Inventory.MAX_ENERGY, inventory.energy());
-        assertFalse(inventory.spendEnergy(Inventory.MAX_ENERGY + 1));
-        assertThrows(IllegalArgumentException.class, () -> new Inventory(bus, Inventory.MAX_ENERGY + 1));
+        assertEquals(Inventory.BASE_MAX_ENERGY, inventory.energy());
+        assertFalse(inventory.spendEnergy(Inventory.BASE_MAX_ENERGY + 1));
+        assertThrows(IllegalArgumentException.class, () -> new Inventory(bus, Inventory.BASE_MAX_ENERGY + 1));
     }
 
     @Test

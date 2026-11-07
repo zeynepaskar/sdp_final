@@ -10,10 +10,7 @@ import com.badlogic.gdx.utils.Disposable;
 import com.thanos.participant3.stones.InfinityStone;
 import java.util.List;
 
-/**
- * Draws the HudModel in a strip along the bottom of a 1280x800 view, in the same paper-and-ink look as the menus.
- * Call render with the game camera's combined matrix after the world is drawn.
- */
+/** Renders HudModel along the bottom of the view. */
 public final class Hud implements Disposable {
     public static final Color INK = Color.valueOf("353B33");
     public static final Color PAPER = Color.valueOf("F2EDD0");
@@ -40,7 +37,6 @@ public final class Hud implements Disposable {
         shapes.setProjectionMatrix(projection);
         batch.setProjectionMatrix(projection);
 
-        // Everything stays below y = 100, where the game's world starts.
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         panel(16, 8, 560, 90);
         panel(592, 8, 672, 90);
@@ -62,7 +58,7 @@ public final class Hud implements Disposable {
         font.draw(batch, "EVENTS", 608, 90);
         font.getData().setScale(1f);
         font.draw(batch, "HP " + model.health() + "/" + model.maxHealth(), 32, 66);
-        font.draw(batch, "Energy " + model.energy() + "/" + model.maxEnergy(), 32, 42);
+        font.draw(batch, "EN " + model.energy() + "/" + model.maxEnergy(), 32, 42);
         font.draw(batch, "Stones " + model.stoneCount() + "/6", 330, 90);
         List<String> feed = model.feed();
         for (int i = 0; i < Math.min(3, feed.size()); i++) {

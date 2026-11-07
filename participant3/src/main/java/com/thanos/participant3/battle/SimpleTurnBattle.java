@@ -6,11 +6,9 @@ import com.thanos.participant3.patterns.decorator.BasicAttack;
 import com.thanos.participant3.patterns.decorator.HitResolver;
 import com.thanos.participant3.patterns.observer.EventBus;
 import com.thanos.participant3.patterns.observer.GameEventType;
+import java.util.OptionalInt;
 
-/**
- * Stand-in battle rules so the screen can be built and shown before participant 2's
- * implementation exists: the enemy always hits with the same power.
- */
+/** Stand-in TurnBattle with a fixed enemy power; every blow goes through HitResolver. */
 public final class SimpleTurnBattle implements TurnBattle {
     private final EventBus events;
     private final HitResolver resolver;
@@ -24,15 +22,20 @@ public final class SimpleTurnBattle implements TurnBattle {
     private int slowPercent;
 
     public SimpleTurnBattle(EventBus events, Combatant thanos, Combatant enemy, int enemyPower, boolean boss) {
-        if (events == null || thanos == null || enemy == null || enemyPower < 0) {
-            throw new IllegalArgumentException("Battle needs events, two fighters and nonnegative enemy power");
+        this(events, new HitResolver(events), thanos, enemy, enemyPower, boss);
+    }
+
+    public SimpleTurnBattle(EventBus events, HitResolver resolver, Combatant thanos, Combatant enemy,
+                            int enemyPower, boolean boss) {
+        if (events == null || resolver == null || thanos == null || enemy == null || enemyPower < 0) {
+            throw new IllegalArgumentException("Battle needs events, a resolver, two fighters and nonnegative enemy power");
         }
         this.events = events;
+        this.resolver = resolver;
         this.thanos = thanos;
         this.enemy = enemy;
         this.enemyPower = enemyPower;
         this.boss = boss;
-        resolver = new HitResolver(events);
         events.publish(GameEventType.BATTLE_STARTED, enemy.name(), enemy.name() + " blocks the way!", 0);
     }
 
@@ -40,6 +43,12 @@ public final class SimpleTurnBattle implements TurnBattle {
     public Combatant enemy() { return enemy; }
     public BattleState state() { return state; }
     public boolean canFlee() { return !boss; }
+
+    public OptionalInt nextEnemyDamage() {
+        if (state.isOver()) return OptionalInt.empty();
+        if (stunTurns > 0) return OptionalInt.of(0);
+        return OptionalInt.of(Math.max(0, enemyPower * (100 - slowPercent) / 100 - thanos.defense()));
+    }
 
     public void playerAttack(Attack attack) {
         expect(BattleState.PLAYER_TURN);
@@ -80,7 +89,9 @@ public final class SimpleTurnBattle implements TurnBattle {
         }
         slowPercent = 0;
         defending = false;
-        if (thanos.isAlive()) {
+        if (!enemy.isAlive()) {
+            win();
+        } else if (thanos.isAlive()) {
             state = BattleState.PLAYER_TURN;
         } else {
             state = BattleState.LOST;
@@ -89,12 +100,13 @@ public final class SimpleTurnBattle implements TurnBattle {
     }
 
     private void endPlayerTurn() {
-        if (enemy.isAlive()) {
-            state = BattleState.ENEMY_TURN;
-        } else {
-            state = BattleState.WON;
-            events.publish(GameEventType.BATTLE_WON, enemy.name(), enemy.name() + " is defeated. Thanos wins!", 0);
-        }
+        if (enemy.isAlive()) state = BattleState.ENEMY_TURN;
+        else win();
+    }
+
+    private void win() {
+        state = BattleState.WON;
+        events.publish(GameEventType.BATTLE_WON, enemy.name(), enemy.name() + " is defeated. Thanos wins!", 0);
     }
 
     private void expect(BattleState expected) {
