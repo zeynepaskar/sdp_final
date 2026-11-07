@@ -44,12 +44,15 @@ public final class BattleScreen implements Disposable {
     private static final Color PORTAL_CORE = Color.valueOf("0B1E3A");
     private static final float PORTAL_X = 530, PORTAL_Y = 340, EXIT_X = 870, EXIT_Y = 560;
     private static final float ENEMY_X = 980, ENEMY_Y = 560;
+    private static final float THANOS_X = 278, THANOS_Y = 236, THANOS_SCALE = 5, ENEMY_SCALE = 8;
     private enum Menu { MAIN, ATTACK, STONES }
 
     private final TurnBattle battle;
     private final Inventory inventory;
     private final BattleMessages messages;
     private final int enemyRgba;
+    private final Backdrop backdrop;
+    private final PixelSprite enemySprite;
     private final ShapeRenderer shapes = new ShapeRenderer();
     private final SpriteBatch batch = new SpriteBatch();
     private final BitmapFont font = new BitmapFont();
@@ -73,6 +76,8 @@ public final class BattleScreen implements Disposable {
         this.inventory = inventory;
         this.messages = messages;
         this.enemyRgba = enemyRgba;
+        this.backdrop = new Backdrop(enemyRgba);
+        this.enemySprite = Sprites.forEnemy(battle.enemy().name());
         font.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
     }
 
@@ -232,7 +237,8 @@ public final class BattleScreen implements Disposable {
         float portal = portalTime();
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(SHADOW);
+        backdrop.draw(shapes);
+        shapes.setColor(backdrop.shadow());
         shapes.ellipse(800, 455, 360, 80);
         shapes.ellipse(150, 205, 420, 90);
         if (enemy.isAlive() || battle.state() != BattleState.WON) drawEnemy(portal > 0.85f && portal < 1.2f);
@@ -342,6 +348,15 @@ public final class BattleScreen implements Disposable {
 
     private void drawEnemy(boolean hit) {
         float shake = hit ? MathUtils.sin(TimeUtils.millis() / 15f) * 6 : 0;
+        if (enemySprite != null) {
+            // tall sprites (the Elders) are drawn at Thanos's finer pixel size
+            float scale = enemySprite.height() > 24 ? THANOS_SCALE : ENEMY_SCALE;
+            float x = ENEMY_X - enemySprite.width() * scale / 2 + shake;
+            enemySprite.draw(shapes, x, 488, scale, key -> hit
+                    ? Color.rgba8888(color.set(enemySprite.rgba(key)).lerp(Color.WHITE, 0.6f))
+                    : enemySprite.rgba(key));
+            return;
+        }
         shapes.setColor(Hud.INK);
         shapes.rect(918 + shake, 488, 124, 144);
         color.set(enemyRgba);
@@ -389,24 +404,20 @@ public final class BattleScreen implements Disposable {
         }
     }
 
+    /** Stones Thanos has not got yet, or that are still flying in, show as empty sockets. */
     private void drawThanos() {
-        shapes.setColor(Hud.INK);
-        shapes.rect(276, 236, 168, 196);
-        shapes.setColor(color.set(0x6C4F8CFF));
-        shapes.rect(280, 240, 160, 188);
-        shapes.setColor(color.set(0xE0B03AFF));
-        shapes.rect(420, 300, 46, 52);
-        for (InfinityStone stone : InfinityStone.values()) {
-            if (!inventory.has(stone) || stone == hiddenStone) continue;
-            Vector2 slot = gauntletSlot(stone);
-            shapes.setColor(color.set(stone.rgba()));
-            shapes.rect(slot.x - 5, slot.y - 5, 10, 10);
-        }
+        Sprites.THANOS.draw(shapes, THANOS_X, THANOS_Y, THANOS_SCALE, key -> {
+            InfinityStone stone = Sprites.stoneOf(key);
+            if (stone == null) return Sprites.THANOS.rgba(key);
+            return inventory.has(stone) && stone != hiddenStone ? stone.rgba() : Sprites.SOCKET;
+        });
     }
 
+    /** Centre of the stone's 2x2 socket in the gauntlet. */
     public static Vector2 gauntletSlot(InfinityStone stone) {
-        int i = stone.ordinal();
-        return new Vector2(429 + (i % 3) * 14, 335 - (i / 3) * 14);
+        int[] socket = Sprites.socket(stone);
+        return new Vector2(THANOS_X + (socket[0] + 1) * THANOS_SCALE,
+                THANOS_Y + (Sprites.THANOS.height() - 1 - socket[1]) * THANOS_SCALE);
     }
 
     private void panel(float x, float y, float w, float h) {
