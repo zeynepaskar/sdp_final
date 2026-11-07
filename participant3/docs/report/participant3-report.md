@@ -236,14 +236,8 @@ Console output of the same turn, printed by the `ConsoleLog` observer:
 [HEALTH_CHANGED] Thanos health: 840/1000
 ```
 
-In the integrated game, the two patterns also connect to the rest of the project:
-
-- The enemies and bosses come from participant 2's **Factory Method** (`BasicEnemyFactory`, `BossEnemyFactory`).
-- The enemy's damage per turn comes from participant 2's **Strategy**, then goes through the same `HitResolver`.
-- The worlds come from participant 1's **Builder**, and the game loop from participant 1's **Facade**.
-
-The standalone battle demo of this module (`run-battle-demo.bat`) uses simple local stats instead, so it runs
-without the other modules.
+The battle works with fighters only through the `Combatant` interface, so it does not depend on where they come
+from. The standalone battle demo of this module (`run-battle-demo.bat`) uses simple local stats for the enemies.
 
 ## 4. Screenshots
 
@@ -297,6 +291,10 @@ runtime. Together they let a new stone effect or a new screen be added without t
 
 Further work:
 
+- Connect the battle to the other modules through an adapter from participant 2's `Enemy` to `Combatant`.
+  - Enemies would come from participant 2's **Factory Method** (`BasicEnemyFactory`, `BossEnemyFactory`).
+  - Their damage would be computed by participant 2's **Strategy** and applied through the same `HitResolver`.
+  - Battles would start from participant 1's game loop (**Facade**) in the worlds built by participant 1's **Builder**.
 - Remove a listener automatically when a screen closes (an `unsubscribe` on dispose).
 - Typed events (one record per event type) instead of one generic `GameEvent`, so a listener cannot misread `value`.
 - Sound effects and achievements as new observers.
