@@ -1,0 +1,42 @@
+@startuml hit-sequence
+!include style.iuml
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #333333
+skinparam SequenceLifeLineBorderColor #888888
+
+title Participant 3: one hit with the Energy Blast ability\nDecorator builds the attack, Observer reports the result
+
+actor Player
+participant BattleScreen
+participant Inventory
+participant "Energy Blast\n<<Ability>>" as Ability
+participant SimpleTurnBattle
+participant HitResolver
+participant EventBus <<Subject>>
+participant BattleMessages <<Observer>>
+participant ConsoleLog <<Observer>>
+
+Player -> BattleScreen : choose Energy Blast
+BattleScreen -> Inventory : use(ability, punch)
+Inventory -> EventBus : publish(ENERGY_CHANGED, ABILITY_USED)
+EventBus -> BattleMessages : onEvent(event)
+EventBus -> ConsoleLog : onEvent(event)
+Inventory -> Ability : apply(punch)
+Ability -> Ability : POWER.empower(POWER.empower(punch))
+note right of Ability
+  PowerStoneDecorator(
+    PowerStoneDecorator(
+      BasicAttack "Punch" 66))
+  damage: 66 -> 99 -> 148
+end note
+Ability --> Inventory : decorated Attack
+Inventory --> BattleScreen : Optional<Attack>
+BattleScreen -> SimpleTurnBattle : playerAttack(attack)
+SimpleTurnBattle -> HitResolver : resolve(thanos, enemy, attack)
+HitResolver -> HitResolver : damage() - defense = 138
+HitResolver -> EventBus : publish(DAMAGE, HEALTH_CHANGED)
+EventBus -> BattleMessages : onEvent(event)
+EventBus -> ConsoleLog : onEvent(event)
+BattleMessages --> Player : "Champion received 138 damage"
+SimpleTurnBattle -> SimpleTurnBattle : enemy turn
+@enduml
