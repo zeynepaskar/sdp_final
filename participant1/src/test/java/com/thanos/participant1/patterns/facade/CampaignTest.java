@@ -106,6 +106,30 @@ class CampaignTest {
         assertFalse(game.exitUnlocked());
     }
 
+    @Test
+    void trainersBlockTheirTileUntilDefeated() {
+        World route = new WorldBuilder().route("""
+                TTTTTTTTT
+                T.......T
+                T@..1.>.T
+                T.......T
+                TTTTTTTTT
+                """).encounter('1', Encounter.Kind.OUTRIDER, Encounter.Facing.EAST).build();
+        GameFacade game = new GameFacade(List.of(route));
+        game.newGame();
+        Encounter trainer = route.encounters().get(0);
+        game.update(2, 1, 0);
+        assertEquals(GamePhase.PLAYING, game.phase());
+        assertTrue(game.player().x() + Thanos.WIDTH <= trainer.x());
+        // Slide past its corner, then step into its forward sight line.
+        game.update(.25f, 1, 1);
+        assertTrue(game.player().y() > trainer.y() + TILE_SIZE);
+        walkTo(game, cell -> trainer.sees(route.layout(), cell.column(), cell.row()));
+        assertTrue(game.isCleared(trainer));
+        walkTo(game, new Cell(trainer.column(), trainer.row())::equals);
+        assertEquals(trainer.x() + (TILE_SIZE - Thanos.WIDTH) / 2, game.player().x(), .01f);
+    }
+
     private static GameFacade trainingRoute() {
         World route = new WorldBuilder().route("""
                 TTTTTTTTTT
@@ -166,7 +190,8 @@ class CampaignTest {
                 Cell next = new Cell(cell.column() + direction.dx(), cell.row() + direction.dy());
                 if (!parent.containsKey(next) && next.column() >= 0 && next.column() < layout.columns()
                         && next.row() >= 0 && next.row() < layout.rows()
-                        && layout.tileAt(next.column(), next.row()).isWalkable()) {
+                        && game.canStandAt((next.column() + .5f) * TILE_SIZE - Thanos.WIDTH / 2,
+                                (next.row() + .5f) * TILE_SIZE - Thanos.FEET_HEIGHT / 2)) {
                     parent.put(next, cell);
                     frontier.add(next);
                 }

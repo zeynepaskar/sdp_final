@@ -4,6 +4,11 @@ import com.thanos.participant1.levels.World;
 
 public final class Thanos {
     public static final float WIDTH = 30f, HEIGHT = 42f, FEET_HEIGHT = 16f, SPEED = 240f;
+    @FunctionalInterface
+    public interface Footing {
+        boolean canStandAt(float x, float y);
+    }
+
     private float x;
     private float y;
 
@@ -22,6 +27,10 @@ public final class Thanos {
     }
 
     public void move(float horizontal, float vertical, float delta, World world) {
+        move(horizontal, vertical, delta, world, (x, y) -> world.layout().isWalkable(x, y, WIDTH, FEET_HEIGHT));
+    }
+
+    public void move(float horizontal, float vertical, float delta, World world, Footing footing) {
         if (!Float.isFinite(horizontal) || !Float.isFinite(vertical) || !Float.isFinite(delta) || delta < 0) {
             throw new IllegalArgumentException("Movement needs finite input and nonnegative time");
         }
@@ -35,11 +44,11 @@ public final class Thanos {
         float stepY = (targetY - y) / steps;
         for (int step = 0; step < steps; step++) {
             float nextX = clamp(x + stepX, world.width() - WIDTH);
-            if (world.layout().isWalkable(nextX, y, WIDTH, FEET_HEIGHT)) {
+            if (footing.canStandAt(nextX, y)) {
                 x = nextX;
             }
             float nextY = clamp(y + stepY, world.height() - HEIGHT);
-            if (world.layout().isWalkable(x, nextY, WIDTH, FEET_HEIGHT)) {
+            if (footing.canStandAt(x, nextY)) {
                 y = nextY;
             }
         }

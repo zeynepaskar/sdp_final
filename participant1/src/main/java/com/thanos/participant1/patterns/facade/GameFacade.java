@@ -101,11 +101,23 @@ public final class GameFacade {
         do {
             float step = (float) Math.min(remaining, MOVEMENT_STEP);
             float oldX = player.x(), oldY = player.y();
-            player.move(horizontal, vertical, step, world());
+            player.move(horizontal, vertical, step, world(), this::canStandAt);
             checkSight();
             if (player.x() == oldX && player.y() == oldY) break;
             remaining -= step;
         } while (remaining > 0 && phase == GamePhase.PLAYING);
+    }
+
+    public boolean canStandAt(float x, float y) {
+        if (!world().layout().isWalkable(x, y, Thanos.WIDTH, Thanos.FEET_HEIGHT)) return false;
+        for (Encounter encounter : world().encounters()) {
+            if (!isCleared(encounter)
+                    && x < encounter.x() + WorldLayout.TILE_SIZE && x + Thanos.WIDTH > encounter.x()
+                    && y < encounter.y() + WorldLayout.TILE_SIZE && y + Thanos.FEET_HEIGHT > encounter.y()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void checkSight() {
