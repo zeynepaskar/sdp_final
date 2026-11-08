@@ -1,6 +1,8 @@
 package com.thanos.participant1.levels;
 
 import com.thanos.participant1.patterns.builder.WorldBuilder;
+import com.thanos.participant1.story.LastSignal;
+import com.thanos.participant1.story.StoryCommand;
 import java.util.List;
 
 import static com.thanos.participant1.levels.Encounter.Facing.*;
@@ -21,7 +23,7 @@ public final class WorldCatalog {
                         #....................##....#
                         #..#.================......#
                         #.##.=..1########...=......#
-                        #....=..###~~~~###..=......#
+                        #..d.=..###~~~~###..=......#
                         #....=..##~~~~~~##..=......#
                         #.@===..##~~~~~~##..===B=>.#
                         #....=..##~~~~~~##..=......#
@@ -34,6 +36,7 @@ public final class WorldCatalog {
                         """)
                 .encounter('1', OUTRIDER, NORTH)
                 .encounter('2', CHITAURI, SOUTH)
+                .marker('d', "Ruined Observatory", "observatory-door", StoryCommand.travel(LastSignal.observatory()))
                 .encounter('B', IN_BETWEENER, WEST)
                 .build();
     }
@@ -68,7 +71,7 @@ public final class WorldCatalog {
                 .colors(0xD5B69CFF, 0xA07475FF).route("""
                         ############################
                         #..........................#
-                        #.......###########........#
+                        #...d...###########........#
                         #......#############..##...#
                         #.@==..##~~~###~~~##..#....#
                         #...=..##~~~###~~~##.......#
@@ -84,6 +87,7 @@ public final class WorldCatalog {
                         """)
                 .encounter('1', SAKAARAN, NORTH)
                 .encounter('2', OUTRIDER, SOUTH)
+                .marker('d', "Salvage Dock", "dock-door", StoryCommand.travel(LastSignal.dock()))
                 .encounter('B', GARDENER, WEST)
                 .build();
     }

@@ -11,6 +11,14 @@ mvn clean package
 
 Use the **arrow keys** to move or select, **Z** to interact or confirm, **X** to go back or pause, and **I** for inventory.
 
-- **Participant 1** builds the maps and coordinates exploration and battles through Builder and Facade.
+## The Last Signal
+
+Look for the observatory entrance just northeast of the landing point on Titan. Gamora recognizes a voice on an old receiver. The trail continues at the salvage dock on Knowhere, where a damaged copy can also get you started. Both stops are optional.
+
+A story marker binds a map symbol and a sprite to a **Command**. For example, `talk` opens a conversation and `travel` enters an area. The exploration, reading, and choice **States** decide what Z and X do. X closes an unanswered choice so you can come back to it.
+
+## Team modules
+
+- **Participant 1** builds maps and places story markers with Builder. GameFacade coordinates movement, story interactions, and battles.
 - **Participant 2** creates the enemies and bosses and selects their attacks through Factory Method and Strategy.
 - **Participant 3** provides the battle screen, inventory and stone abilities through Observer and Decorator.
