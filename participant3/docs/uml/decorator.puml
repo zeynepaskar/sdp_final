@@ -9,7 +9,11 @@ package "Uses attacks" {
     +use(ability, attack) : Optional<Attack>
   }
   class AbilityBook {
-    +forStones(stones) : List<Ability>
+    +abilities(stonesInOrder) : List<Ability>
+    +upgradedByLast(stonesInOrder) : List<Skill>
+  }
+  class Skill <<record>> {
+    basic, upgraded : Ability
   }
   class Ability <<record>> {
     name, stone, energyCost
@@ -92,7 +96,8 @@ package "Applies attacks" {
 }
 
 Inventory ..> AbilityBook
-AbilityBook ..> Ability : 3 per stone
+AbilityBook *-- Skill : 2 base +\n1 per stone
+Skill --> Ability : plain /\nupgraded
 Ability --> InfinityStone
 InfinityStone ..> AttackDecorator : wraps in\nits decorator
 

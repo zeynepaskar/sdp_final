@@ -10,6 +10,7 @@ import com.thanos.participant3.patterns.observer.EventBus;
 import com.thanos.participant3.patterns.observer.GameEventType;
 import com.thanos.participant3.stones.Ability;
 import com.thanos.participant3.stones.AbilityBook;
+import com.thanos.participant3.stones.Skill;
 import com.thanos.participant3.stones.InfinityStone;
 import com.thanos.participant3.stones.SoulHarvest;
 import com.thanos.participant3.ui.BattleMessages;
@@ -24,7 +25,7 @@ class StonePassivesTest {
     private final FakeCombatant runner = new FakeCombatant("Runner", 500, 500, 10);
 
     private static Ability ability(String name) {
-        return AbilityBook.forStones(List.of(InfinityStone.values())).stream()
+        return AbilityBook.allSkills().stream().map(Skill::basic)
                 .filter(a -> a.name().equals(name)).findFirst().orElseThrow();
     }
 

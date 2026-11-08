@@ -20,6 +20,7 @@ public final class Inventory {
     private static final String OWNER = "Thanos";
     private final EventBus events;
     private final EnumSet<InfinityStone> stones = EnumSet.noneOf(InfinityStone.class);
+    private final List<InfinityStone> found = new ArrayList<>();
     private int energy;
     private int maxEnergy = BASE_MAX_ENERGY;
 
@@ -39,6 +40,7 @@ public final class Inventory {
             throw new IllegalArgumentException("Stone must not be null");
         }
         if (!stones.add(stone)) return false;
+        found.add(stone);
         events.publish(GameEventType.STONE_ACQUIRED, OWNER,
                 OWNER + " acquired the " + stone.displayName() + " (" + stones.size() + "/6)", stones.size());
         return true;
@@ -48,7 +50,8 @@ public final class Inventory {
     public Set<InfinityStone> stones() { return Collections.unmodifiableSet(stones.clone()); }
     public int stoneCount() { return stones.size(); }
     public boolean isComplete() { return stones.size() == InfinityStone.values().length; }
-    public List<Ability> abilities() { return AbilityBook.forStones(stones); }
+    public List<InfinityStone> stonesInOrder() { return List.copyOf(found); }
+    public List<Ability> abilities() { return AbilityBook.abilities(found); }
     public int energy() { return energy; }
     public int maxEnergy() { return maxEnergy; }
 
@@ -89,9 +92,9 @@ public final class Inventory {
             throw new IllegalArgumentException("Ability and attack are required");
         }
         int cost = costOf(ability);
-        if (!has(ability.stone()) || !spendEnergy(cost)) return Optional.empty();
-        events.publish(GameEventType.ABILITY_USED, OWNER,
-                OWNER + " used " + ability.name() + " (" + ability.stone().displayName() + ")", cost);
+        if (!ability.isBase() && !has(ability.stone()) || !spendEnergy(cost)) return Optional.empty();
+        events.publish(GameEventType.ABILITY_USED, OWNER, OWNER + " used " + ability.name()
+                + (ability.isBase() ? "" : " (" + ability.stone().displayName() + ")"), cost);
         return Optional.of(ability.apply(attack));
     }
 

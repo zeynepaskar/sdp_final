@@ -15,6 +15,8 @@ import com.badlogic.gdx.utils.Disposable;
 import com.thanos.participant3.stones.Ability;
 import com.thanos.participant3.stones.AbilityBook;
 import com.thanos.participant3.stones.InfinityStone;
+import com.thanos.participant3.stones.Skill;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -89,7 +91,11 @@ public final class StoneRewardView implements Disposable {
         if (rewards.phase() == StoneRewards.Phase.FLY) return;
         float alpha = rewards.phase() == StoneRewards.Phase.SHOW ? Math.min(1, p * 5) : 0;
         if (alpha == 0) return;
-        String abilities = AbilityBook.forStone(stone).stream().map(Ability::name).collect(Collectors.joining(",  "));
+        List<InfinityStone> found = rewards.foundUpToCurrent();
+        List<Ability> abilities = AbilityBook.abilities(found);
+        String unlocked = abilities.get(abilities.size() - 1).name();
+        String upgraded = AbilityBook.upgradedByLast(found).stream().map(Skill::upgraded).map(Ability::name)
+                .collect(Collectors.joining(",  "));
         batch.setProjectionMatrix(projection);
         batch.begin();
         float line = stone.passive().isEmpty() ? 212 : 180;
@@ -100,7 +106,11 @@ public final class StoneRewardView implements Disposable {
         if (!stone.passive().isEmpty()) {
             centered("Passive  -  " + stone.passive(), 212, 1.4f, color.set(Hud.PAPER).mul(1, 1, 1, alpha), 0);
         }
-        centered("New abilities:  " + abilities, line, 1.4f, color.set(stoneColor).mul(1, 1, 1, alpha), 0);
+        centered("New ability:  " + unlocked, line, 1.4f, color.set(stoneColor).mul(1, 1, 1, alpha), 0);
+        if (!upgraded.isEmpty()) {
+            centered((found.size() == InfinityStone.values().length ? "Gauntlet complete!  Upgraded:  " : "Upgraded:  ")
+                    + upgraded, line - 30, 1.3f, color.set(Hud.PAPER).mul(1, 1, 1, alpha), 0);
+        }
         if ((int) (time * 2) % 2 == 0) {
             centered("ENTER or click", 110, 1.2f, color.set(Hud.PAPER).mul(1, 1, 1, 0.6f * alpha), 0);
         }

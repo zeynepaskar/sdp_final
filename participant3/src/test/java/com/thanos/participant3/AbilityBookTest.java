@@ -9,65 +9,97 @@ import com.thanos.participant3.patterns.observer.EventBus;
 import com.thanos.participant3.stones.Ability;
 import com.thanos.participant3.stones.AbilityBook;
 import com.thanos.participant3.stones.InfinityStone;
-import java.util.EnumSet;
+import com.thanos.participant3.stones.Skill;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class AbilityBookTest {
-    private static final List<Ability> ALL = AbilityBook.forStones(EnumSet.allOf(InfinityStone.class));
-
     private static Attack punchWith(String name) {
-        Ability ability = ALL.stream().filter(a -> a.name().equals(name)).findFirst().orElseThrow();
+        Ability ability = AbilityBook.allSkills().stream().flatMap(skill -> Stream.of(skill.basic(), skill.upgraded()))
+                .filter(a -> a.name().equals(name)).findFirst().orElseThrow();
         return ability.apply(new BasicAttack("Punch", 60));
     }
 
+    private static List<String> names(List<InfinityStone> stones) {
+        return AbilityBook.abilities(stones).stream().map(Ability::name).toList();
+    }
+
     @Test
-    void everyStoneUnlocksThreeAbilities() {
+    void twoBaseSkillsAndOnePerStone() {
+        List<Skill> skills = AbilityBook.allSkills();
+
+        assertEquals(8, skills.size());
+        assertTrue(skills.get(0).basic().isBase());
+        assertTrue(skills.get(1).basic().isBase());
         for (InfinityStone stone : InfinityStone.values()) {
-            List<Ability> abilities = AbilityBook.forStone(stone);
-            assertEquals(3, abilities.size());
-            abilities.forEach(ability -> assertEquals(stone, ability.stone()));
+            assertEquals(1, skills.stream().filter(skill -> skill.stone() == stone).count());
         }
-        assertEquals(18, ALL.stream().map(Ability::name).distinct().count());
+        assertEquals(16, skills.stream().flatMap(skill -> Stream.of(skill.basic(), skill.upgraded()))
+                .map(Ability::name).distinct().count());
     }
 
     @Test
-    void strongerVersionsStackTheirStone() {
-        assertEquals(60, punchWith("Life Siphon").lifestealPercent());
+    void eachStoneUnlocksOneSkillAndUpgradesTheNextInLine() {
+        assertEquals(List.of("Punch", "Titan's Fury"), names(List.of()));
+        assertEquals(List.of("Crushing Blow", "Titan's Fury", "Mind Blast"), names(List.of(InfinityStone.MIND)));
+        assertEquals(List.of("Crushing Blow", "Titan's Wrath", "Mind Spike", "Soul Drain", "Rewind"),
+                names(List.of(InfinityStone.MIND, InfinityStone.SOUL, InfinityStone.TIME)));
+    }
+
+    @Test
+    void theFullGauntletUpgradesEverything() {
+        List<InfinityStone> all = List.of(InfinityStone.values());
+
+        assertEquals(List.of("Crushing Blow", "Titan's Wrath", "Life Siphon", "Planet Breaker", "Time Loop",
+                "Gravity Well", "Reality Rewrite", "Mind Spike"), names(all));
+        assertEquals(List.of("Gravity Well", "Reality Rewrite", "Mind Spike"),
+                AbilityBook.upgradedByLast(all).stream().map(skill -> skill.upgraded().name()).toList());
+        assertEquals(List.of("Crushing Blow"),
+                AbilityBook.upgradedByLast(List.of(InfinityStone.SPACE)).stream().map(skill -> skill.upgraded().name()).toList());
+    }
+
+    @Test
+    void baseSkillsScaleThePunch() {
+        assertEquals(60, punchWith("Punch").damage());
+        assertEquals(75, punchWith("Crushing Blow").damage());
+        assertEquals(90, punchWith("Titan's Fury").damage());
+        assertEquals(120, punchWith("Titan's Wrath").damage());
+    }
+
+    @Test
+    void powerOutgrowsTheTitan() {
         assertEquals(135, punchWith("Energy Blast").damage());
-        assertEquals(202, punchWith("Planet Breaker").damage());
-        assertEquals(50, punchWith("Rapid Decay").slowPercent());
-        assertEquals(2, punchWith("Mind Control").stunTurns());
+        assertEquals(180, punchWith("Planet Breaker").damage());
+        assertTrue(punchWith("Energy Blast").damage() > punchWith("Titan's Wrath").damage());
     }
 
     @Test
-    void specialAbilitiesMixInNewEffects() {
-        Attack mend = punchWith("Soul Mend");
-        assertEquals(30, mend.damage());
-        assertEquals(150, mend.selfHeal());
+    void upgradesAddAnEffectOnTop() {
+        assertEquals(30, punchWith("Soul Drain").lifestealPercent());
+        assertEquals(60, punchWith("Life Siphon").lifestealPercent());
         assertEquals(30, punchWith("Rewind").damage());
         assertEquals(100, punchWith("Rewind").rewindPercent());
-        Attack portal = punchWith("Portal Strike");
-        assertEquals(105, portal.damage());
-        assertTrue(portal.unblockable());
+        assertEquals(100, punchWith("Time Loop").rewindPercent());
+        assertEquals(25, punchWith("Time Loop").slowPercent());
+        assertEquals(105, punchWith("Portal Strike").damage());
+        assertTrue(punchWith("Portal Strike").unblockable());
         assertEquals(40, punchWith("Gravity Well").slowPercent());
-        Attack distortion = punchWith("Distortion");
-        assertEquals(90, distortion.damage());
-        assertTrue(distortion.turnsDefenseIntoDamage());
-        assertEquals(50, punchWith("Transmutation").slowPercent());
-        Attack spike = punchWith("Mind Spike");
-        assertEquals(90, spike.damage());
-        assertEquals(1, spike.stunTurns());
+        assertTrue(punchWith("Distortion").turnsDefenseIntoDamage());
+        assertEquals(90, punchWith("Reality Rewrite").damage());
+        assertEquals(1, punchWith("Mind Blast").stunTurns());
+        assertEquals(1, punchWith("Mind Spike").stunTurns());
+        assertEquals(90, punchWith("Mind Spike").damage());
     }
 
     @Test
-    void soulMendHealsTheAttacker() {
+    void soulDrainHealsTheAttacker() {
         FakeCombatant thanos = new FakeCombatant("Thanos", 500, 1000, 10);
         FakeCombatant champion = new FakeCombatant("Champion", 800, 800, 10);
 
-        new HitResolver(new EventBus()).resolve(thanos, champion, punchWith("Soul Mend"));
+        new HitResolver(new EventBus()).resolve(thanos, champion, punchWith("Soul Drain"));
 
-        assertEquals(773, champion.health());
-        assertEquals(650, thanos.health());
+        assertEquals(746, champion.health());
+        assertEquals(516, thanos.health());
     }
 }

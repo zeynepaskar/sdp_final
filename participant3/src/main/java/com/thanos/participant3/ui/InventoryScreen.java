@@ -25,6 +25,7 @@ public final class InventoryScreen implements Disposable {
     private static final Color ENERGY = Color.valueOf("2E86DE");
     private static final Color EXPERIENCE = Color.valueOf("9B59B6");
     private static final Color MUTED = Color.valueOf("9A9480");
+    private static final Color TITAN = Color.valueOf("E2B33C");
     private static final float ROW_TOP = 392, ROW_HEIGHT = 30;
     private final InventoryPage page;
     private final ShapeRenderer shapes = new ShapeRenderer();
@@ -104,7 +105,8 @@ public final class InventoryScreen implements Disposable {
                 shapes.setColor(SHADOW);
                 shapes.rect(48, y - 8, 1136, ROW_HEIGHT);
             }
-            shapes.setColor(color.set(abilities.get(row).stone().rgba()));
+            Ability ability = abilities.get(row);
+            shapes.setColor(ability.isBase() ? color.set(TITAN) : color.set(ability.stone().rgba()));
             shapes.rect(64, y, 12, 12);
         }
         shapes.end();
@@ -126,7 +128,6 @@ public final class InventoryScreen implements Disposable {
             text(owned ? stones[i].passive() : "not collected", 660, y, 1.05f, owned ? Hud.INK : MUTED);
         }
         text("ABILITIES  " + abilities.size(), 52, 438, 1.3f, Hud.INK);
-        if (abilities.isEmpty()) text("No stones yet: each stone unlocks three abilities", 64, 380, 1.2f, MUTED);
         for (int row = page.firstRow(); row < Math.min(abilities.size(), page.firstRow() + InventoryPage.VISIBLE_ROWS); row++) {
             Ability ability = abilities.get(row);
             float y = ROW_TOP - (row - page.firstRow()) * ROW_HEIGHT;

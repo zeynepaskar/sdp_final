@@ -29,8 +29,11 @@ import java.util.List;
 /** Battle view and input over TurnBattle; call update() then render() every frame. */
 public final class BattleScreen implements Disposable {
     public static final int PUNCH_DAMAGE = 60;
-    private static final int VISIBLE_ROWS = 7;
-    private static final int SCROLL_UP = -2, SCROLL_DOWN = -3;
+    /** Attack menu: four boxes a page, the arrow on the right turns the page. */
+    private static final int PAGE = 4, PAGE_ARROW = -2;
+    private static final float BOX_X = 804, BOX_Y = 28, BOX_W = 196, BOX_H = 80, BOX_GAP_X = 204, BOX_GAP_Y = 88;
+    private static final float ARROW_X = 1234, ARROW_Y = 112;
+    private static final String[] GEM = {"...#...", "..#L#..", ".#LCC#.", "#LCCCD#", ".#CCD#.", "..#D#..", "...#..."};
     private static final String[] MAIN = {"Attack", "Stones", "Defend", "Flee"};
     private static final Color SHADOW = Color.valueOf("D8D2B0");
     private static final Color HEALTH = Color.valueOf("C0392B");
@@ -60,7 +63,6 @@ public final class BattleScreen implements Disposable {
     private final Vector2 pointer = new Vector2();
     private Menu menu = Menu.MAIN;
     private int cursor;
-    private int firstRow;
     private int lastMouseX = -1, lastMouseY = -1;
     private String hint = "";
     private InfinityStone hiddenStone;
@@ -113,10 +115,8 @@ public final class BattleScreen implements Disposable {
             if (pressed(Input.Keys.LEFT) || pressed(Input.Keys.A)) cursor = cursor ^ 1;
             if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.S)) cursor = cursor ^ 2;
             if (pressed(Input.Keys.UP) || pressed(Input.Keys.W)) cursor = cursor ^ 2;
-        } else {
-            int size = menu == Menu.ATTACK ? attacks().size() + 1 : 1;
-            if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.S)) cursor = (cursor + 1) % size;
-            if (pressed(Input.Keys.UP) || pressed(Input.Keys.W)) cursor = (cursor + size - 1) % size;
+        } else if (menu == Menu.ATTACK) {
+            moveInGrid();
         }
         int hovered = mouse ? itemUnderMouse(viewport) : -1;
         boolean moved = mouse && (Gdx.input.getX() != lastMouseX || Gdx.input.getY() != lastMouseY);
@@ -125,9 +125,7 @@ public final class BattleScreen implements Disposable {
             lastMouseY = Gdx.input.getY();
         }
         if (hovered >= 0 && (moved || click)) cursor = hovered;
-        if (click && hovered == SCROLL_UP) cursor = Math.max(0, cursor - 1);
-        if (click && hovered == SCROLL_DOWN) cursor = Math.min(attacks().size(), cursor + 1);
-        keepCursorVisible();
+        if (click && hovered == PAGE_ARROW) turnPage(page() + 1 < pages() ? page() + 1 : page() - 1, cursor % PAGE);
         if (cursor != before) hint = "";
         if (back && menu != Menu.MAIN) backToMain();
         else if (confirm || click && hovered >= 0) choose();
@@ -144,11 +142,13 @@ public final class BattleScreen implements Disposable {
                 }
             }
             case ATTACK -> {
-                if (x >= 1222 && x < 1262 && y >= 168 && y < 204) return SCROLL_UP;
-                if (x >= 1222 && x < 1262 && y >= 20 && y < 56) return SCROLL_DOWN;
-                if (x >= 800 && x < 1220 && y <= 194 && y > 194 - VISIBLE_ROWS * 22) {
-                    int row = firstRow + (int) ((194 - y) / 22);
-                    if (row <= attacks().size()) return row;
+                if (pages() > 1 && x >= ARROW_X - 24 && x < ARROW_X + 24 && y >= ARROW_Y - 30 && y < ARROW_Y + 30) {
+                    return PAGE_ARROW;
+                }
+                for (int slot = 0; slot < PAGE; slot++) {
+                    int index = page() * PAGE + slot;
+                    if (index < attacks().size() && x >= boxX(slot) && x < boxX(slot) + BOX_W
+                            && y >= boxY(slot) && y < boxY(slot) + BOX_H) return index;
                 }
             }
             case STONES -> {
@@ -158,10 +158,31 @@ public final class BattleScreen implements Disposable {
         return -1;
     }
 
-    private void keepCursorVisible() {
-        if (cursor < firstRow) firstRow = cursor;
-        if (cursor >= firstRow + VISIBLE_ROWS) firstRow = cursor - VISIBLE_ROWS + 1;
+    /** Arrows move inside the 2x2 grid; stepping past its right or left edge turns the page. */
+    private void moveInGrid() {
+        int count = attacks().size(), slot = cursor % PAGE;
+        if (pressed(Input.Keys.RIGHT) || pressed(Input.Keys.D)) {
+            if (slot % 2 == 0 && cursor + 1 < count) cursor++;
+            else if (slot % 2 == 1) turnPage(page() + 1, slot - 1);
+        }
+        if (pressed(Input.Keys.LEFT) || pressed(Input.Keys.A)) {
+            if (slot % 2 == 1) cursor--;
+            else turnPage(page() - 1, slot + 1);
+        }
+        boolean down = pressed(Input.Keys.DOWN) || pressed(Input.Keys.S);
+        boolean up = pressed(Input.Keys.UP) || pressed(Input.Keys.W);
+        if ((down || up) && (cursor ^ 2) < count) cursor ^= 2;
     }
+
+    private void turnPage(int page, int slot) {
+        if (page < 0 || page >= pages()) return;
+        cursor = Math.min(attacks().size() - 1, page * PAGE + slot);
+    }
+
+    private int page() { return cursor / PAGE; }
+    private int pages() { return (attacks().size() + PAGE - 1) / PAGE; }
+    private static float boxX(int slot) { return BOX_X + (slot % 2) * BOX_GAP_X; }
+    private static float boxY(int slot) { return BOX_Y + (1 - slot / 2) * BOX_GAP_Y; }
 
     private void choose() {
         hint = "";
@@ -178,14 +199,8 @@ public final class BattleScreen implements Disposable {
                 }
             }
             case ATTACK -> {
-                Attack punch = punch();
-                if (cursor == 0) {
-                    battle.playerAttack(punch);
-                    open(Menu.MAIN);
-                    return;
-                }
-                Ability ability = attacks().get(cursor - 1);
-                inventory.use(ability, punch).ifPresentOrElse(attack -> {
+                Ability ability = attacks().get(cursor);
+                inventory.use(ability, punch()).ifPresentOrElse(attack -> {
                     battle.playerAttack(attack);
                     open(Menu.MAIN);
                 }, () -> hint = "Not enough energy for " + ability.name());
@@ -203,7 +218,6 @@ public final class BattleScreen implements Disposable {
     private void open(Menu next) {
         menu = next;
         cursor = 0;
-        firstRow = 0;
     }
 
     private List<Ability> attacks() { return inventory.abilities(); }
@@ -262,6 +276,7 @@ public final class BattleScreen implements Disposable {
                 shapes.rect(42, 166 - i * 24, 14, 14);
             }
         }
+        if (menu == Menu.ATTACK) drawAttackBoxes();
         shapes.end();
 
         batch.begin();
@@ -297,16 +312,12 @@ public final class BattleScreen implements Disposable {
             return;
         }
         if (menu == Menu.ATTACK && choosing) {
-            if (cursor == 0) {
-                text("Punch", 44, 170, 1.5f, Hud.INK);
-                text("A plain blow for " + punch().damage() + " damage", 44, 130, 1.2f, Hud.INK);
-            } else {
-                Ability ability = attacks().get(cursor - 1);
-                text(ability.name() + "  (" + ability.stone().displayName() + ", " + inventory.costOf(ability) + " EN)",
-                        44, 170, 1.5f, Hud.INK);
-                text(ability.description(), 44, 130, 1.2f, Hud.INK);
-            }
-            if (!hint.isEmpty()) text(hint, 44, 80, 1.2f, HEALTH);
+            Ability ability = attacks().get(cursor);
+            String source = ability.isBase() ? "Titan" : ability.stone().displayName();
+            text(ability.name() + "  (" + source + ", " + inventory.costOf(ability) + " EN)", 44, 170, 1.5f, Hud.INK);
+            text(ability.description(), 44, 130, 1.2f, Hud.INK);
+            text("Damage before defense: " + ability.apply(punch()).damage(), 44, 100, 1.2f, Hud.INK);
+            if (!hint.isEmpty()) text(hint, 44, 60, 1.2f, HEALTH);
             return;
         }
         String line = messages.hasPending() ? messages.current()
@@ -329,20 +340,59 @@ public final class BattleScreen implements Disposable {
             }
             case ATTACK -> {
                 List<Ability> abilities = attacks();
-                int rows = abilities.size() + 1;
-                int first = firstRow;
-                for (int row = first; row < Math.min(rows, first + VISIBLE_ROWS); row++) {
-                    Ability ability = row == 0 ? null : abilities.get(row - 1);
-                    String label = ability == null ? "Punch" : ability.name() + "   " + inventory.costOf(ability) + " EN";
-                    boolean affordable = ability == null || inventory.costOf(ability) <= inventory.energy();
-                    text((cursor == row ? "> " : "  ") + label, 820, 190 - (row - first) * 22, 1.2f,
-                            affordable ? ink : MUTED);
+                for (int slot = 0; slot < PAGE; slot++) {
+                    int index = page() * PAGE + slot;
+                    if (index >= abilities.size()) break;
+                    Ability ability = abilities.get(index);
+                    int cost = inventory.costOf(ability);
+                    Color tint = cost <= inventory.energy() ? ink : MUTED;
+                    float x = boxX(slot) + (ability.isBase() ? 16 : 44), y = boxY(slot);
+                    text(ability.name(), x, y + BOX_H - 18, 1.3f, tint);
+                    text(cost == 0 ? "free" : cost + " EN", x, y + 32, 1.1f, tint);
                 }
-                if (abilities.isEmpty()) text("  no stones yet", 820, 166, 1.2f, MUTED);
-                if (first > 0) text("^", 1236, 190, 1.2f, MUTED);
-                if (first + VISIBLE_ROWS < rows) text("v", 1236, 46, 1.2f, MUTED);
+                if (pages() > 1) text((page() + 1) + "/" + pages(), ARROW_X - 12, 50, 1.1f, MUTED);
             }
             case STONES -> text("> Back", 830, 150, 1.8f, ink);
+        }
+    }
+
+    private void drawAttackBoxes() {
+        boolean active = battle.state() == BattleState.PLAYER_TURN && !messages.hasPending();
+        List<Ability> abilities = attacks();
+        for (int slot = 0; slot < PAGE; slot++) {
+            int index = page() * PAGE + slot;
+            float x = boxX(slot), y = boxY(slot), border = active && index == cursor ? 6 : 3;
+            shapes.setColor(index < abilities.size() ? Hud.INK : SHADOW);
+            shapes.rect(x, y, BOX_W, BOX_H);
+            shapes.setColor(active && index == cursor ? SHADOW : Hud.PAPER);
+            shapes.rect(x + border, y + border, BOX_W - 2 * border, BOX_H - 2 * border);
+            if (index < abilities.size() && !abilities.get(index).isBase()) {
+                drawGem(abilities.get(index).stone(), x + 14, y + BOX_H - 36, 3);
+            }
+        }
+        if (pages() > 1) {
+            shapes.setColor(Hud.INK);
+            if (page() + 1 < pages()) {
+                shapes.triangle(ARROW_X - 12, ARROW_Y + 18, ARROW_X - 12, ARROW_Y - 18, ARROW_X + 14, ARROW_Y);
+            } else {
+                shapes.triangle(ARROW_X + 12, ARROW_Y + 18, ARROW_X + 12, ARROW_Y - 18, ARROW_X - 14, ARROW_Y);
+            }
+        }
+    }
+
+    /** A small pixel gem in the stone's colour that marks a stone ability. */
+    private void drawGem(InfinityStone stone, float x, float y, float cell) {
+        for (int row = 0; row < GEM.length; row++) {
+            for (int col = 0; col < GEM[row].length(); col++) {
+                char key = GEM[row].charAt(col);
+                if (key == '.') continue;
+                color.set(stone.rgba());
+                if (key == '#') color.set(Hud.INK);
+                else if (key == 'L') color.lerp(Color.WHITE, 0.55f);
+                else if (key == 'D') color.mul(0.7f, 0.7f, 0.7f, 1);
+                shapes.setColor(color);
+                shapes.rect(x + col * cell, y + (GEM.length - 1 - row) * cell, cell, cell);
+            }
         }
     }
 

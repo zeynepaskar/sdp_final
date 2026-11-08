@@ -132,8 +132,10 @@ Each of the six stones changes an attack in its own way:
 | Reality | defense becomes extra damage |
 | Mind | stun |
 
-There are 18 abilities (three per stone), and they combine effects. For example, *Rewind* deals half damage and
-undoes the enemy's last blow. A subclass for every combination (`PowerSoulAttack`, `PowerPowerAttack`, ...) would
+Thanos has eight skills: two base ones (*Punch*, *Titan's Fury*) and one per stone. Every new stone unlocks its
+skill and upgrades the next skill in line; the sixth stone completes the gauntlet and upgrades the rest. Skills
+combine effects: *Rewind* deals half damage and undoes the enemy's last blow, and its upgrade *Time Loop* also
+weakens the enemy's next hit. A subclass for every combination (`PowerSoulAttack`, `PowerPowerAttack`, ...) would
 explode in number and could not be built at runtime.
 
 ### Solution
@@ -194,14 +196,16 @@ public final class PowerStoneDecorator extends AttackDecorator {
 ```
 
 Each stone knows its decorator (`InfinityStone.empower`). An ability is a function that stacks decorators, so all
-18 abilities are built from 10 decorator classes:
+16 forms of the eight skills are built from 10 decorator classes. An upgrade is simply one more layer:
 
 ```java
-new Ability("Energy Blast", POWER, 40, "The Power Stone twice over: more than double damage",
+new Ability("Energy Blast", POWER, 40, "The Power Stone twice over: x2.25 damage",
         attack -> POWER.empower(POWER.empower(attack)));
 
-new Ability("Rewind", TIME, 35, "Undoes the enemy's last blow and strikes at half strength",
-        attack -> new RewindDecorator(new DamageScaleDecorator(attack, 50), 100));
+new Ability("Rewind", TIME, 35, "Undoes the enemy's last blow, strikes at half strength",
+        AbilityBook::rewind);
+new Ability("Time Loop", TIME, 35, "Rewind, and the enemy's next hit is 25% weaker",
+        attack -> TIME.empower(rewind(attack)));
 ```
 
 ### UML
@@ -286,7 +290,7 @@ The module has 72 JUnit 5 tests, and all of them pass (`mvn -f participant3/pom.
 ## 6. Conclusion and further work
 
 Observer keeps the game logic independent of the screen: the same battle drives the libGDX battle screen,
-the HUD and the console log. Decorator turns six stones and 18 abilities into ten small classes that combine at
+the HUD and the console log. Decorator turns six stones and eight upgradable skills into ten small classes that combine at
 runtime. Together they let a new stone effect or a new screen be added without touching the battle code.
 
 Further work:

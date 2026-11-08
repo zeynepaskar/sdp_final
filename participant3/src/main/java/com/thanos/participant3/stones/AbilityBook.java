@@ -2,66 +2,104 @@ package com.thanos.participant3.stones;
 
 import static com.thanos.participant3.stones.InfinityStone.*;
 
+import com.thanos.participant3.patterns.decorator.Attack;
 import com.thanos.participant3.patterns.decorator.DamageScaleDecorator;
 import com.thanos.participant3.patterns.decorator.RewindDecorator;
-import com.thanos.participant3.patterns.decorator.SelfHealDecorator;
 import com.thanos.participant3.patterns.decorator.WeakenDecorator;
 import java.util.*;
 
-/** Catalogue of three decorator-built abilities per stone. */
+/**
+ * Thanos's eight skills: two base ones and one per stone. Each new stone unlocks its skill and upgrades
+ * the next skill in line (base skills first, then stone skills in the order they were found); the sixth
+ * stone completes the gauntlet and upgrades everything that is left.
+ */
 public final class AbilityBook {
-    private static final Map<InfinityStone, List<Ability>> ABILITIES = new EnumMap<>(Map.of(
-            SOUL, List.of(
-                    new Ability("Soul Drain", SOUL, 20, "Strike that feeds on the enemy's life"),
-                    new Ability("Life Siphon", SOUL, 35, "Drains twice as much: heals 60% of the damage",
-                            attack -> SOUL.empower(SOUL.empower(attack))),
-                    new Ability("Soul Mend", SOUL, 30, "A light blow that restores 150 health",
-                            attack -> new SelfHealDecorator(new DamageScaleDecorator(attack, 50), 150))),
-            POWER, List.of(
-                    new Ability("Cosmic Strike", POWER, 25, "A blow with the raw force of the universe"),
-                    new Ability("Energy Blast", POWER, 40, "The Power Stone twice over: more than double damage",
+    private static final List<Skill> BASE = List.of(
+            new Skill(new Ability("Punch", null, 0, "A plain blow", attack -> attack),
+                    new Ability("Crushing Blow", null, 0, "A heavier blow: +25% damage",
+                            attack -> new DamageScaleDecorator(attack, 125))),
+            new Skill(new Ability("Titan's Fury", null, 25, "Raw Titan strength: +50% damage",
+                            attack -> new DamageScaleDecorator(attack, 150)),
+                    new Ability("Titan's Wrath", null, 20, "Double damage",
+                            attack -> new DamageScaleDecorator(attack, 200))));
+
+    private static final Map<InfinityStone, Skill> STONES = new EnumMap<>(Map.of(
+            SOUL, new Skill(
+                    new Ability("Soul Drain", SOUL, 20, "Heals Thanos for 30% of the damage"),
+                    new Ability("Life Siphon", SOUL, 30, "Heals Thanos for 60% of the damage",
+                            attack -> SOUL.empower(SOUL.empower(attack)))),
+            POWER, new Skill(
+                    new Ability("Energy Blast", POWER, 40, "The Power Stone twice over: x2.25 damage",
                             attack -> POWER.empower(POWER.empower(attack))),
-                    new Ability("Planet Breaker", POWER, 60, "The blow that shattered Tamarata: triple damage",
-                            attack -> POWER.empower(POWER.empower(POWER.empower(attack))))),
-            TIME, List.of(
-                    new Ability("Aging", TIME, 20, "Ages the enemy so it hits back weaker"),
-                    new Ability("Rapid Decay", TIME, 35, "Ages the enemy fast: its next hit is 50% weaker",
-                            attack -> TIME.empower(TIME.empower(attack))),
-                    new Ability("Rewind", TIME, 35, "Undoes the enemy's last blow and strikes at half strength",
-                            attack -> new RewindDecorator(new DamageScaleDecorator(attack, 50), 100))),
-            SPACE, List.of(
-                    new Ability("Spatial Rift", SPACE, 20, "Attacks through a rift that cannot be blocked"),
-                    new Ability("Portal Strike", SPACE, 35, "Strikes from behind through a portal: +75% damage",
-                            attack -> new DamageScaleDecorator(SPACE.empower(attack), 175)),
-                    new Ability("Gravity Well", SPACE, 30, "Crushes the enemy: its next hit is 40% weaker",
-                            attack -> new WeakenDecorator(SPACE.empower(attack), 40))),
-            REALITY, List.of(
-                    new Ability("Law Breaker", REALITY, 30, "Turns the enemy's defense into extra damage"),
-                    new Ability("Distortion", REALITY, 45, "Bends reality: +50%, defense becomes damage",
-                            attack -> new DamageScaleDecorator(REALITY.empower(attack), 150)),
-                    new Ability("Transmutation", REALITY, 35, "Turns part of the enemy to stone: next hit -50%",
-                            attack -> new WeakenDecorator(REALITY.empower(attack), 50))),
-            MIND, List.of(
-                    new Ability("Mind Blast", MIND, 30, "Stuns the enemy for a turn"),
-                    new Ability("Mind Spike", MIND, 45, "Pierces the mind: +50% damage and a stun",
-                            attack -> new DamageScaleDecorator(MIND.empower(attack), 150)),
-                    new Ability("Mind Control", MIND, 55, "The enemy obeys and loses two turns",
-                            attack -> MIND.empower(MIND.empower(attack))))));
+                    new Ability("Planet Breaker", POWER, 50, "Triple damage",
+                            attack -> POWER.empower(new DamageScaleDecorator(attack, 200)))),
+            TIME, new Skill(
+                    new Ability("Rewind", TIME, 35, "Undoes the enemy's last blow, strikes at half strength",
+                            AbilityBook::rewind),
+                    new Ability("Time Loop", TIME, 35, "Rewind, and the enemy's next hit is 25% weaker",
+                            attack -> TIME.empower(rewind(attack)))),
+            SPACE, new Skill(
+                    new Ability("Portal Strike", SPACE, 35, "Ignores defense: +75% damage",
+                            AbilityBook::portalStrike),
+                    new Ability("Gravity Well", SPACE, 35, "Portal Strike, and the enemy's next hit is 40% weaker",
+                            attack -> new WeakenDecorator(portalStrike(attack), 40))),
+            REALITY, new Skill(
+                    new Ability("Distortion", REALITY, 30, "Turns the enemy's defense into extra damage"),
+                    new Ability("Reality Rewrite", REALITY, 40, "Defense becomes damage, then +50%",
+                            attack -> new DamageScaleDecorator(REALITY.empower(attack), 150))),
+            MIND, new Skill(
+                    new Ability("Mind Blast", MIND, 30, "Stuns the enemy: it loses its next turn"),
+                    new Ability("Mind Spike", MIND, 40, "Stun and +50% damage",
+                            attack -> new DamageScaleDecorator(MIND.empower(attack), 150)))));
 
     private AbilityBook() { }
 
-    public static List<Ability> forStone(InfinityStone stone) {
+    private static Attack rewind(Attack attack) {
+        return new RewindDecorator(new DamageScaleDecorator(attack, 50), 100);
+    }
+
+    private static Attack portalStrike(Attack attack) {
+        return new DamageScaleDecorator(SPACE.empower(attack), 175);
+    }
+
+    public static List<Skill> baseSkills() { return BASE; }
+
+    /** All eight skills: the base ones, then one per stone in story order. */
+    public static List<Skill> allSkills() { return unlocked(List.of(InfinityStone.values())); }
+
+    public static Skill forStone(InfinityStone stone) {
         if (stone == null) {
             throw new IllegalArgumentException("Stone must not be null");
         }
-        return ABILITIES.get(stone);
+        return STONES.get(stone);
     }
 
-    public static List<Ability> forStones(Collection<InfinityStone> stones) {
+    /** Skills in unlock order: the two base skills, then one per stone in the order the stones were found. */
+    public static List<Skill> unlocked(List<InfinityStone> stonesInOrder) {
+        List<Skill> skills = new ArrayList<>(BASE);
+        for (InfinityStone stone : stonesInOrder) skills.add(forStone(stone));
+        return List.copyOf(skills);
+    }
+
+    /** How many skills (counted in unlock order) are upgraded once this many stones are found. */
+    public static int upgradedCount(int stoneCount) {
+        return stoneCount >= InfinityStone.values().length ? BASE.size() + stoneCount : stoneCount;
+    }
+
+    /** The abilities Thanos can use with these stones, each in its plain or upgraded form. */
+    public static List<Ability> abilities(List<InfinityStone> stonesInOrder) {
+        List<Skill> skills = unlocked(stonesInOrder);
+        int upgraded = upgradedCount(stonesInOrder.size());
         List<Ability> result = new ArrayList<>();
-        for (InfinityStone stone : InfinityStone.values()) {
-            if (stones.contains(stone)) result.addAll(forStone(stone));
-        }
+        for (int i = 0; i < skills.size(); i++) result.add(skills.get(i).form(i < upgraded));
         return List.copyOf(result);
+    }
+
+    /** Skills that the last stone in the list upgraded. */
+    public static List<Skill> upgradedByLast(List<InfinityStone> stonesInOrder) {
+        if (stonesInOrder.isEmpty()) return List.of();
+        List<Skill> skills = unlocked(stonesInOrder);
+        int now = upgradedCount(stonesInOrder.size()), before = upgradedCount(stonesInOrder.size() - 1);
+        return skills.subList(before, now);
     }
 }
