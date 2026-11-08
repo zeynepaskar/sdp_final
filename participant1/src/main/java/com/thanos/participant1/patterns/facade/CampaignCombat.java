@@ -2,7 +2,6 @@ package com.thanos.participant1.patterns.facade;
 
 import com.thanos.participant1.levels.Encounter;
 import com.thanos.participant2.combat.CombatManager;
-import com.thanos.participant2.enemies.BossType;
 import com.thanos.participant2.factory.BasicEnemyFactory;
 import com.thanos.participant2.factory.ChitauriEnemyFactory;
 import com.thanos.participant2.factory.EnemyFactory;
@@ -19,15 +18,17 @@ import com.thanos.participant3.ui.StoneRewards;
 import java.util.Random;
 
 final class CampaignCombat {
-    private final EventBus events = new EventBus();
-    final Thanos progress = new Thanos(events);
-    final Inventory inventory = new Inventory(events, Inventory.BASE_MAX_ENERGY);
+    final Thanos progress;
+    final Inventory inventory;
     final BattleMessages messages = new BattleMessages();
-    final StoneRewards rewards = new StoneRewards(inventory);
+    final StoneRewards rewards;
     private final CombatManager combat;
-    private TurnBattle battle;
 
     CampaignCombat(Random random) {
+        EventBus events = new EventBus();
+        progress = new Thanos(events);
+        inventory = new Inventory(events, Inventory.BASE_MAX_ENERGY);
+        rewards = new StoneRewards(inventory);
         events.subscribe(messages);
         events.subscribe(rewards);
         events.subscribe(new SoulHarvest(progress, inventory, events));
@@ -36,24 +37,25 @@ final class CampaignCombat {
 
     void start(Encounter encounter) {
         messages.clear();
-        if (encounter.isBoss()) {
-            battle = combat.startBossBattle(bossType(encounter), encounter.x(), encounter.y());
-        } else {
-            EnemyFactory factory = switch (encounter.kind()) {
-                case OUTRIDER -> new BasicEnemyFactory();
-                case CHITAURI -> new ChitauriEnemyFactory();
-                case SAKAARAN -> new SakaaranEnemyFactory();
-                default -> throw new IllegalArgumentException("Unknown regular enemy: " + encounter.kind());
-            };
-            battle = combat.startBattle(factory.create(encounter.x(), encounter.y()));
+        var boss = encounter.kind().bossType();
+        if (boss.isPresent()) {
+            combat.startBossBattle(boss.get(), encounter.x(), encounter.y());
+            return;
         }
+        EnemyFactory factory = switch (encounter.kind()) {
+            case OUTRIDER -> new BasicEnemyFactory();
+            case CHITAURI -> new ChitauriEnemyFactory();
+            case SAKAARAN -> new SakaaranEnemyFactory();
+            default -> throw new IllegalArgumentException("Unknown regular enemy: " + encounter.kind());
+        };
+        combat.startBattle(factory.create(encounter.x(), encounter.y()));
     }
 
-    TurnBattle battle() { return battle; }
+    TurnBattle battle() { return combat.currentBattle().orElse(null); }
 
     void reward(Encounter encounter) {
-        if (encounter.isBoss()) inventory.addStone(bossType(encounter).stone());
-        progress.gainExperience(Thanos.experienceFor(battle.enemy()));
+        encounter.kind().bossType().ifPresent(boss -> inventory.addStone(boss.stone()));
+        progress.gainExperience(Thanos.experienceFor(battle().enemy()));
     }
 
     void restoreAtEntrance() {
@@ -63,10 +65,5 @@ final class CampaignCombat {
 
     void finish() {
         combat.finishBattle();
-        battle = null;
-    }
-
-    private static BossType bossType(Encounter encounter) {
-        return BossType.valueOf(encounter.kind().name());
     }
 }

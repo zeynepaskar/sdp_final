@@ -48,9 +48,7 @@ public final class GameFacade {
     public List<World> worlds() { return worlds; }
     public Encounter activeEncounter() { return activeEncounter; }
     public boolean isCleared(Encounter encounter) { return cleared.contains(encounter); }
-    public boolean exitUnlocked() {
-        return world().encounters().stream().filter(Encounter::isBoss).allMatch(this::isCleared);
-    }
+    public boolean exitUnlocked() { return gateGuardian() == null; }
     public TurnBattle battle() { return combat == null ? null : combat.battle(); }
     public Inventory inventory() { return combat.inventory; }
     public BattleMessages messages() { return combat.messages; }
@@ -165,8 +163,9 @@ public final class GameFacade {
         if (!world().overlapsPortal(player.x(), player.y(), player.width(), player.height())) {
             return TransitionResult.TOO_FAR;
         }
-        if (!exitUnlocked()) {
-            world().encounters().stream().filter(e -> e.isBoss() && !isCleared(e)).findFirst().ifPresent(this::beginAlert);
+        Encounter guardian = gateGuardian();
+        if (guardian != null) {
+            beginAlert(guardian);
             return TransitionResult.LOCKED;
         }
         if (worldIndex == worlds.size() - 1) {
@@ -177,6 +176,13 @@ public final class GameFacade {
         worldIndex++;
         enterWorld();
         return TransitionResult.ADVANCED;
+    }
+
+    private Encounter gateGuardian() {
+        for (Encounter encounter : world().encounters()) {
+            if (encounter.isBoss() && !isCleared(encounter)) return encounter;
+        }
+        return null;
     }
 
     public void dispose() {

@@ -1,22 +1,30 @@
 package com.thanos.participant1.levels;
 
+import com.thanos.participant2.enemies.BossType;
 import java.util.Objects;
+import java.util.Optional;
 
 public record Encounter(Kind kind, int column, int row, Facing facing) {
     public enum Kind {
-        OUTRIDER("Outrider", false), CHITAURI("Chitauri", false), SAKAARAN("Sakaaran", false),
-        IN_BETWEENER("In-Betweener", true), CHAMPION("Champion", true), GARDENER("Gardener", true),
-        RUNNER("Runner", true), COLLECTOR("Collector", true), GRANDMASTER("Grandmaster", true);
+        OUTRIDER("Outrider"), CHITAURI("Chitauri"), SAKAARAN("Sakaaran"),
+        IN_BETWEENER(BossType.IN_BETWEENER), CHAMPION(BossType.CHAMPION), GARDENER(BossType.GARDENER),
+        RUNNER(BossType.RUNNER), COLLECTOR(BossType.COLLECTOR), GRANDMASTER(BossType.GRANDMASTER);
 
         private final String displayName;
-        private final boolean boss;
+        private final BossType boss;
 
-        Kind(String displayName, boolean boss) {
+        Kind(String displayName) {
             this.displayName = displayName;
+            this.boss = null;
+        }
+
+        Kind(BossType boss) {
+            this.displayName = boss.getDisplayName();
             this.boss = boss;
         }
 
         public String displayName() { return displayName; }
+        public Optional<BossType> bossType() { return Optional.ofNullable(boss); }
     }
 
     public enum Facing {
@@ -41,7 +49,7 @@ public record Encounter(Kind kind, int column, int row, Facing facing) {
         Objects.requireNonNull(facing);
     }
 
-    public boolean isBoss() { return kind.boss; }
+    public boolean isBoss() { return kind.boss != null; }
     public float x() { return column * WorldLayout.TILE_SIZE; }
     public float y() { return row * WorldLayout.TILE_SIZE; }
 
