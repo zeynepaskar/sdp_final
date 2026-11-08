@@ -38,21 +38,36 @@ class BossAbilityTest {
     }
 
     @Test
-    void collectorStunsThanos() {
-        TurnBattleController battle = createBattle(
-                BossType.COLLECTOR,
-                new RealityTrapStrategy()
-        );
+    void collectorStunsThanosButHeCanAttackAfterTheLostTurn() {
+        TurnBattleController battle = createBattle(BossType.COLLECTOR, new RealityTrapStrategy());
+        BasicAttack attack = new BasicAttack("Punch", 50);
+
+        battle.playerDefend();
+        battle.enemyTurn();
+        int initialHealth = battle.enemy().health();
+        battle.playerAttack(attack);
+        assertEquals(initialHealth, battle.enemy().health());
+        assertEquals(BattleState.ENEMY_TURN, battle.state());
+
+        battle.enemyTurn();
+        battle.playerAttack(attack);
+        assertTrue(battle.enemy().health() < initialHealth);
+    }
+
+    @Test
+    void aTrapThatWentThroughTheSpacePortalCannotStun() {
+        EventBus events = new EventBus();
+        SimpleCombatant thanos = new SimpleCombatant("Thanos", 500, 20);
+        CombatManager manager = new CombatManager(events, thanos, target -> target == thanos);
+        TurnBattleController battle = manager.startBossBattle(BossType.COLLECTOR, 0, 0);
 
         battle.playerDefend();
         battle.enemyTurn();
 
-        int healthBefore = battle.thanos().health();
-
-        battle.playerAttack(new BasicAttack("Test Attack", 50));
-
-        assertEquals(healthBefore, battle.thanos().health());
-        assertEquals(BattleState.ENEMY_TURN, battle.state());
+        assertEquals(500, thanos.health());
+        assertFalse(battle.skipPlayerTurnIfStunned());
+        battle.playerAttack(new BasicAttack("Punch", 50));
+        assertTrue(battle.enemy().health() < battle.enemy().maxHealth());
     }
 
     @Test

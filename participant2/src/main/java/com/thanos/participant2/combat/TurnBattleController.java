@@ -1,4 +1,3 @@
-
 package com.thanos.participant2.combat;
 
 import com.thanos.participant2.enemies.Enemy;
@@ -7,6 +6,7 @@ import com.thanos.participant3.Combatant;
 import com.thanos.participant3.battle.BattleState;
 import com.thanos.participant3.battle.TurnBattle;
 import com.thanos.participant3.patterns.decorator.Attack;
+import com.thanos.participant3.patterns.decorator.DamageScaleDecorator;
 import com.thanos.participant3.patterns.decorator.HitResolver;
 import com.thanos.participant3.patterns.observer.EventBus;
 import com.thanos.participant3.patterns.observer.GameEventType;
@@ -30,6 +30,7 @@ public class TurnBattleController implements TurnBattle {
 
     // Effects applied to Thanos by the enemy
     private int playerStunTurns;
+    private boolean recoveringFromStun;
     private int playerDamageReductionPercent;
 
     private boolean defending;
@@ -94,21 +95,7 @@ public class TurnBattleController implements TurnBattle {
             return OptionalInt.of(0);
         }
 
-        Attack attack = enemyStrategy.createAttack(enemy);
-
-        int damage = attack.damage() * (100 - slowPercent) / 100;
-
-        if (defending) {
-            damage = damage * 50 / 100;
-        }
-
-        int defense = Math.max(0, Math.min(80, thanos.defense()));
-
-        if (!attack.ignoresDefense() && !attack.unblockable()) {
-            damage = damage * (100 - defense) / 100;
-        }
-
-        return OptionalInt.of(damage);
+        return OptionalInt.of(HitResolver.damageAgainst(nextEnemyAttack(), thanos));
     }
 
     @Override
@@ -126,7 +113,7 @@ public class TurnBattleController implements TurnBattle {
 
         // Apply weakening from the enemy's previous attack.
         if (playerDamageReductionPercent > 0) {
-            attack = scaleAttack(attack, playerDamageReductionPercent);
+            attack = new DamageScaleDecorator(attack, 100 - playerDamageReductionPercent);
             playerDamageReductionPercent = 0;
         }
 
@@ -193,34 +180,15 @@ public class TurnBattleController implements TurnBattle {
                     0
             );
         } else {
-            Attack attack = enemyStrategy.createAttack(enemy);
-
-            // Apply weakening from Thanos's previous attack.
-            if (slowPercent > 0) {
-                attack = scaleAttack(attack, slowPercent);
-            }
-
-            // Apply Thanos's defense stance.
-            if (defending) {
-                attack = scaleAttack(attack, 50);
-            }
-
-            int incomingStun = attack.stunTurns();
-            int incomingWeakening = attack.slowPercent();
-
-            resolver.resolve(enemy, thanos, attack);
-
-            // Apply effects to Thanos if he survived.
-            if (thanos.isAlive()) {
-                playerStunTurns += incomingStun;
-
-                playerDamageReductionPercent = Math.max(
-                        playerDamageReductionPercent,
-                        incomingWeakening
-                );
+            Attack attack = nextEnemyAttack();
+            int dealt = resolver.resolve(enemy, thanos, attack);
+            if (dealt > 0 && thanos.isAlive()) {
+                if (!recoveringFromStun) playerStunTurns += attack.stunTurns();
+                playerDamageReductionPercent = Math.max(playerDamageReductionPercent, attack.slowPercent());
             }
         }
 
+        recoveringFromStun = false;
         slowPercent = 0;
         defending = false;
 
@@ -240,66 +208,21 @@ public class TurnBattleController implements TurnBattle {
         }
     }
 
-    private Attack scaleAttack(Attack original, int reductionPercent) {
-        int safeReduction = Math.max(0, Math.min(100, reductionPercent));
-
-        int scaledDamage =
-                original.damage() * (100 - safeReduction) / 100;
-
-        return new Attack() {
-            @Override
-            public int damage() {
-                return scaledDamage;
-            }
-
-            @Override
-            public String description() {
-                return original.description();
-            }
-
-            @Override
-            public int lifestealPercent() {
-                return original.lifestealPercent();
-            }
-
-            @Override
-            public int selfHeal() {
-                return original.selfHeal();
-            }
-
-            @Override
-            public int rewindPercent() {
-                return original.rewindPercent();
-            }
-
-            @Override
-            public boolean ignoresDefense() {
-                return original.ignoresDefense();
-            }
-
-            @Override
-            public boolean unblockable() {
-                return original.unblockable();
-            }
-
-            @Override
-            public int slowPercent() {
-                return original.slowPercent();
-            }
-
-            @Override
-            public int stunTurns() {
-                return original.stunTurns();
-            }
-        };
+    private Attack nextEnemyAttack() {
+        Attack attack = enemyStrategy.createAttack(enemy);
+        if (slowPercent > 0) attack = new DamageScaleDecorator(attack, 100 - slowPercent);
+        if (defending) attack = new DamageScaleDecorator(attack, 50);
+        return attack;
     }
 
-    private boolean skipPlayerTurnIfStunned() {
-        if (playerStunTurns <= 0) {
+    @Override
+    public boolean skipPlayerTurnIfStunned() {
+        if (state != BattleState.PLAYER_TURN || playerStunTurns <= 0) {
             return false;
         }
 
         playerStunTurns--;
+        recoveringFromStun = true;
 
         events.publish(
                 GameEventType.TURN_SKIPPED,

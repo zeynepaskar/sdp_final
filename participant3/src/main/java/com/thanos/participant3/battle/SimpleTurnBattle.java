@@ -47,7 +47,7 @@ public final class SimpleTurnBattle implements TurnBattle {
     public OptionalInt nextEnemyDamage() {
         if (state.isOver()) return OptionalInt.empty();
         if (stunTurns > 0) return OptionalInt.of(0);
-        return OptionalInt.of(Math.max(0, enemyPower * (100 - slowPercent) / 100 - thanos.defense()));
+        return OptionalInt.of(HitResolver.damageAgainst(enemyStrike(), thanos));
     }
 
     public void playerAttack(Attack attack) {
@@ -83,9 +83,7 @@ public final class SimpleTurnBattle implements TurnBattle {
             stunTurns--;
             events.publish(GameEventType.TURN_SKIPPED, enemy.name(), enemy.name() + " is stunned and cannot move", 0);
         } else {
-            int damage = enemyPower * (100 - slowPercent) / 100;
-            if (defending) damage /= 2;
-            resolver.resolve(enemy, thanos, new BasicAttack(enemy.name() + " strike", damage));
+            resolver.resolve(enemy, thanos, enemyStrike());
         }
         slowPercent = 0;
         defending = false;
@@ -97,6 +95,11 @@ public final class SimpleTurnBattle implements TurnBattle {
             state = BattleState.LOST;
             events.publish(GameEventType.BATTLE_LOST, thanos.name(), thanos.name() + " has fallen...", 0);
         }
+    }
+
+    private Attack enemyStrike() {
+        int damage = enemyPower * (100 - slowPercent) / 100;
+        return new BasicAttack(enemy.name() + " strike", defending ? damage / 2 : damage);
     }
 
     private void endPlayerTurn() {

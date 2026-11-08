@@ -15,5 +15,7 @@ public interface TurnBattle {
     void flee();
     void enemyTurn();
 
+    default boolean skipPlayerTurnIfStunned() { return false; }
+
     default OptionalInt nextEnemyDamage() { return OptionalInt.empty(); }
 }

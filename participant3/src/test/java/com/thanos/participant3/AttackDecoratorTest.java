@@ -44,7 +44,7 @@ class AttackDecoratorTest {
         HitResolver resolver = new HitResolver(new EventBus());
         FakeCombatant thanos = new FakeCombatant("Thanos", 1000, 1000, 0);
 
-        assertEquals(20, resolver.resolve(thanos, new FakeCombatant("Champion", 500, 500, 30), punch));
+        assertEquals(35, resolver.resolve(thanos, new FakeCombatant("Champion", 500, 500, 30), punch));
         assertEquals(50, resolver.resolve(thanos, new FakeCombatant("Champion", 500, 500, 30),
                 new RealityStoneDecorator(punch)));
     }

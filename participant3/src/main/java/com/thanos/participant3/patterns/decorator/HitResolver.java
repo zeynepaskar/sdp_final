@@ -26,10 +26,7 @@ public final class HitResolver {
         if (attacker == null || target == null || attack == null) {
             throw new IllegalArgumentException("Attacker, target and attack are required");
         }
-        int defense = Math.max(0, Math.min(80, target.defense()));
-        int dealt = (attack.ignoresDefense() || attack.unblockable())
-                ? attack.damage()
-                : attack.damage() * (100 - defense) / 100;
+        int dealt = damageAgainst(attack, target);
         if (portal.opensFor(target)) {
             lastWound.put(target.name(), 0);
             sendBack(attacker, target, dealt);
@@ -51,6 +48,12 @@ public final class HitResolver {
             events.publish(GameEventType.DEFEATED, target.name(), target.name() + " was defeated", 0);
         }
         return dealt;
+    }
+
+    public static int damageAgainst(Attack attack, Combatant target) {
+        if (attack.ignoresDefense() || attack.unblockable()) return attack.damage();
+        int defense = Math.max(0, Math.min(80, target.defense()));
+        return (int) ((long) attack.damage() * (100 - defense) / 100);
     }
 
     public int lastWound(Combatant combatant) { return lastWound.getOrDefault(combatant.name(), 0); }

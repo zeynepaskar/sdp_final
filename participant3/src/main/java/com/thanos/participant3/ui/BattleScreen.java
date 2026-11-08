@@ -106,7 +106,7 @@ public final class BattleScreen implements Disposable {
             }
             return;
         }
-        if (battle.state() != BattleState.PLAYER_TURN) return;
+        if (battle.state() != BattleState.PLAYER_TURN || battle.skipPlayerTurnIfStunned()) return;
         int before = cursor;
         if (menu == Menu.MAIN) {
             if (pressed(Input.Keys.RIGHT) || pressed(Input.Keys.D)) cursor = cursor ^ 1;

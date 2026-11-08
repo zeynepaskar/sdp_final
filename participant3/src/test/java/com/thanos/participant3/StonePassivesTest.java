@@ -97,7 +97,7 @@ class StonePassivesTest {
     @Test
     void foresightTellsTheNextBlow() {
         SimpleTurnBattle battle = new SimpleTurnBattle(bus, thanos, runner, 75, true);
-        assertEquals(OptionalInt.of(65), battle.nextEnemyDamage());
+        assertEquals(OptionalInt.of(67), battle.nextEnemyDamage());
 
         battle.playerAttack(ability("Mind Blast").apply(new BasicAttack("Punch", 60)));
         assertEquals(OptionalInt.of(0), battle.nextEnemyDamage());
@@ -107,12 +107,12 @@ class StonePassivesTest {
     void rewindUndoesTheLastWoundOnce() {
         HitResolver resolver = new HitResolver(bus);
         resolver.resolve(runner, thanos, new BasicAttack("Runner strike", 85));
-        assertEquals(525, thanos.health());
-        assertEquals(75, resolver.lastWound(thanos));
+        assertEquals(524, thanos.health());
+        assertEquals(76, resolver.lastWound(thanos));
 
         resolver.resolve(thanos, runner, ability("Rewind").apply(new BasicAttack("Punch", 60)));
         assertEquals(600, thanos.health());
-        assertEquals(480, runner.health());
+        assertEquals(473, runner.health());
         assertEquals(0, resolver.lastWound(thanos));
 
         resolver.resolve(thanos, runner, ability("Rewind").apply(new BasicAttack("Punch", 60)));
