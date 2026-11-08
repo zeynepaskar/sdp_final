@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
@@ -61,6 +62,9 @@ public final class BattleScreen implements Disposable {
     private final BitmapFont font = new BitmapFont();
     private final Color color = new Color();
     private final Vector2 pointer = new Vector2();
+    private final GlyphLayout layout = new GlyphLayout();
+    private GameEvent mightEvent;
+    private long mightStart;
     private Menu menu = Menu.MAIN;
     private int cursor;
     private int lastMouseX = -1, lastMouseY = -1;
@@ -342,10 +346,48 @@ public final class BattleScreen implements Disposable {
         }
         String line = messages.hasPending() ? messages.current()
                 : battle.state().isOver() ? "" : hint.isEmpty() ? "What will Thanos do?" : hint;
-        text(line, 44, 160, 1.7f, Hud.INK);
+        if (!drawMightHit()) text(line, 44, 160, 1.7f, Hud.INK);
         if (messages.hasPending() && TimeUtils.millis() / 500 % 2 == 0) {
             text("ENTER or click  >>", 530, 52, 1.3f, Hud.INK);
         }
+    }
+
+    /**
+     * Power Stone passive: Thanos's blows show their damage in the stone's colour, flashing at first,
+     * with a "Might +10%" tag under the line. Returns false when the current message is not such a blow.
+     */
+    private boolean drawMightHit() {
+        GameEvent event = messages.currentEvent();
+        String number = event == null ? "" : " " + event.value() + " ";
+        boolean might = event != null && event.type() == GameEventType.DAMAGE && inventory.has(InfinityStone.POWER)
+                && !event.source().equals(battle.thanos().name()) && event.message().contains(number);
+        if (!might) {
+            mightEvent = null;
+            return false;
+        }
+        if (event != mightEvent) {
+            mightEvent = event;
+            mightStart = TimeUtils.millis();
+        }
+        long elapsed = TimeUtils.millis() - mightStart;
+        String message = event.message();
+        int at = message.lastIndexOf(number) + 1;
+        String before = message.substring(0, at), value = String.valueOf(event.value());
+        Color power = color.set(InfinityStone.POWER.rgba());
+        if (elapsed < 600 && elapsed / 100 % 2 == 0) power.lerp(Color.WHITE, 0.6f);
+        float x = 44 + width(before, 1.7f);
+        text(before, 44, 160, 1.7f, Hud.INK);
+        text(value, x, 160, 1.7f, power);
+        text(message.substring(at + value.length()), x + width(value, 1.7f), 160, 1.7f, Hud.INK);
+        text("Might +" + (Inventory.POWER_DAMAGE_PERCENT - 100) + "%", 44, 118, 1.2f,
+                color.set(InfinityStone.POWER.rgba()));
+        return true;
+    }
+
+    private float width(String value, float scale) {
+        font.getData().setScale(scale);
+        layout.setText(font, value);
+        return layout.width;
     }
 
     private void drawMenu() {
@@ -472,7 +514,9 @@ public final class BattleScreen implements Disposable {
             float eased = p * p * (3 - 2 * p);
             float x = MathUtils.lerp(fromX, toX, eased);
             float y = MathUtils.lerp(fromY, toY, eased) + MathUtils.sin(p * MathUtils.PI) * (70 + i * 37 % 80);
-            float size = 10 * (1 - 0.6f * p);
+            float size = 16 * (1 - 0.5f * p);
+            shapes.setColor(Hud.INK);
+            shapes.rect(x - size / 2 - 2, y - size / 2 - 2, size + 4, size + 4);
             color.set(InfinityStone.SOUL.rgba());
             if (i % 3 == 0) color.lerp(Color.WHITE, 0.5f);
             shapes.setColor(color);
