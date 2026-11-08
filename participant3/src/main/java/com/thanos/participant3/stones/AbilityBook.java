@@ -73,6 +73,10 @@ public final class AbilityBook {
         return STONES.get(stone);
     }
 
+    public static boolean isUpgraded(Ability ability) {
+        return allSkills().stream().anyMatch(skill -> skill.upgraded() == ability);
+    }
+
     /** Skills in unlock order: the two base skills, then one per stone in the order the stones were found. */
     public static List<Skill> unlocked(List<InfinityStone> stonesInOrder) {
         List<Skill> skills = new ArrayList<>(BASE);

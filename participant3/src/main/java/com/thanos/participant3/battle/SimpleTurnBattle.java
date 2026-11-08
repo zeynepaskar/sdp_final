@@ -6,6 +6,7 @@ import com.thanos.participant3.patterns.decorator.BasicAttack;
 import com.thanos.participant3.patterns.decorator.HitResolver;
 import com.thanos.participant3.patterns.observer.EventBus;
 import com.thanos.participant3.patterns.observer.GameEventType;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 /** Stand-in TurnBattle with a fixed enemy power; every blow goes through HitResolver. */
@@ -46,8 +47,12 @@ public final class SimpleTurnBattle implements TurnBattle {
 
     public OptionalInt nextEnemyDamage() {
         if (state.isOver()) return OptionalInt.empty();
-        if (stunTurns > 0) return OptionalInt.of(0);
-        return OptionalInt.of(HitResolver.applyDefense(enemyPower * (100 - slowPercent) / 100, thanos.defense()));
+        return OptionalInt.of(nextEnemyAttack().map(attack -> HitResolver.damageAgainst(attack, thanos.defense())).orElse(0));
+    }
+
+    public Optional<Attack> nextEnemyAttack() {
+        if (state.isOver() || stunTurns > 0) return Optional.empty();
+        return Optional.of(new BasicAttack(enemy.name() + " strike", enemyPower * (100 - slowPercent) / 100));
     }
 
     public void playerAttack(Attack attack) {
@@ -83,9 +88,8 @@ public final class SimpleTurnBattle implements TurnBattle {
             stunTurns--;
             events.publish(GameEventType.TURN_SKIPPED, enemy.name(), enemy.name() + " is stunned and cannot move", 0);
         } else {
-            int damage = enemyPower * (100 - slowPercent) / 100;
-            if (defending) damage /= 2;
-            resolver.resolve(enemy, thanos, new BasicAttack(enemy.name() + " strike", damage));
+            Attack strike = nextEnemyAttack().orElseThrow();
+            resolver.resolve(enemy, thanos, defending ? new BasicAttack(strike.name(), strike.damage() / 2) : strike);
         }
         slowPercent = 0;
         defending = false;

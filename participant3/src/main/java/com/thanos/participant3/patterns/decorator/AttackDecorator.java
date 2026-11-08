@@ -12,6 +12,7 @@ public abstract class AttackDecorator implements Attack {
     }
 
     public int damage() { return wrapped.damage(); }
+    public String name() { return wrapped.name(); }
     public String description() { return wrapped.description(); }
     public int lifestealPercent() { return wrapped.lifestealPercent(); }
     public int selfHeal() { return wrapped.selfHeal(); }

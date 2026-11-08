@@ -24,6 +24,7 @@ import com.thanos.participant3.patterns.observer.GameEvent;
 import com.thanos.participant3.patterns.observer.GameEventType;
 import com.thanos.participant3.progress.Thanos;
 import com.thanos.participant3.stones.Ability;
+import com.thanos.participant3.stones.AbilityBook;
 import com.thanos.participant3.stones.InfinityStone;
 import java.util.List;
 
@@ -41,6 +42,7 @@ public final class BattleScreen implements Disposable {
     private static final Color ENERGY = Color.valueOf("2E86DE");
     private static final Color EXPERIENCE = Color.valueOf("9B59B6");
     private static final Color MUTED = Color.valueOf("9A9480");
+    private static final Color TITAN = Color.valueOf("C9962A");
     private static final Color ENERGY_LIGHT = Color.valueOf("9CCBFF");
     private static final Color TIME_LIGHT = Color.valueOf("8FE3B0");
     private static final Color PORTAL = Color.valueOf("2E86DE");
@@ -301,14 +303,21 @@ public final class BattleScreen implements Disposable {
             }
         }
         if (menu == Menu.ATTACK) drawAttackBoxes();
+        if (battle.state() == BattleState.PLAYER_TURN && !messages.hasPending() && inventory.has(InfinityStone.MIND)
+                && battle.nextEnemyDamage().isPresent()) {
+            panel(80, 546, 560, 44);
+            drawGem(InfinityStone.MIND, 94, 557, 3);
+        }
         shapes.end();
 
         batch.begin();
         text(enemy.name(), 110, 690, 1.6f, Hud.INK);
         boolean choosing = battle.state() == BattleState.PLAYER_TURN && !messages.hasPending();
+        text("HP " + enemy.health() + "/" + enemy.maxHealth() + "     Defense " + enemy.defense() + "%"
+                + (battle.canFlee() ? "" : "     Boss"), 110, 658, 1.1f, Hud.INK);
         if (choosing && inventory.has(InfinityStone.MIND)) {
-            battle.nextEnemyDamage().ifPresent(damage -> text(damage == 0 ? "Foresight: stunned"
-                    : "Foresight: next blow " + damage, 330, 684, 1.1f, Hud.INK));
+            battle.nextEnemyDamage().ifPresent(damage -> text("Foresight:  " + EnemyIntent.describe(
+                    battle.nextEnemyAttack().orElse(null), damage), 124, 574, 1.2f, Hud.INK));
         }
         text("HP", 420, 634, 1f, Hud.INK);
         text(thanos.name(), 760, 385, 1.6f, Hud.INK);
@@ -338,7 +347,8 @@ public final class BattleScreen implements Disposable {
         if (menu == Menu.ATTACK && choosing) {
             Ability ability = attacks().get(cursor);
             String source = ability.isBase() ? "Titan" : ability.stone().displayName();
-            text(ability.name() + "  (" + source + ", " + inventory.costOf(ability) + " EN)", 44, 170, 1.5f, Hud.INK);
+            text(ability.name() + "  (" + source + ", " + inventory.costOf(ability) + " EN"
+                    + (AbilityBook.isUpgraded(ability) ? ", upgraded" : "") + ")", 44, 170, 1.5f, Hud.INK);
             text(ability.description(), 44, 130, 1.2f, Hud.INK);
             text("Damage before defense: " + ability.apply(punch()).damage(), 44, 100, 1.2f, Hud.INK);
             if (!hint.isEmpty()) text(hint, 44, 60, 1.2f, HEALTH);
@@ -437,6 +447,7 @@ public final class BattleScreen implements Disposable {
             if (index < abilities.size() && !abilities.get(index).isBase()) {
                 drawGem(abilities.get(index).stone(), x + 14, y + BOX_H - 36, 3);
             }
+            if (index < abilities.size() && AbilityBook.isUpgraded(abilities.get(index))) drawUpgradeMark(x + BOX_W - 22, y + 10);
         }
         if (pages() > 1) {
             shapes.setColor(Hud.INK);
@@ -446,6 +457,16 @@ public final class BattleScreen implements Disposable {
                 shapes.triangle(ARROW_X + 12, ARROW_Y + 18, ARROW_X + 12, ARROW_Y - 18, ARROW_X - 14, ARROW_Y);
             }
         }
+    }
+
+    /** Gold plus in the corner of an upgraded ability's box. */
+    private void drawUpgradeMark(float x, float y) {
+        shapes.setColor(Hud.INK);
+        shapes.rect(x + 4, y - 2, 8, 20);
+        shapes.rect(x - 2, y + 4, 20, 8);
+        shapes.setColor(TITAN);
+        shapes.rect(x + 6, y, 4, 16);
+        shapes.rect(x, y + 6, 16, 4);
     }
 
     /** A small pixel gem in the stone's colour that marks a stone ability. */
