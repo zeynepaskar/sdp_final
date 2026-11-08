@@ -1,29 +1,31 @@
 package com.thanos.participant2.enemies;
 
+import com.thanos.participant3.stones.InfinityStone;
+
 public enum BossType {
 
     IN_BETWEENER(
-            "In-Betweener", 600, 45, 2.0f, 30, "Soul Blast"
+            "In-Betweener", 600, 45, 2.0f, 30, "Soul Blast", InfinityStone.SOUL
     ),
 
     CHAMPION(
-            "Champion", 800, 60, 1.5f, 40, "Power Punch"
+            "Champion", 800, 60, 1.5f, 40, "Power Punch", InfinityStone.POWER
     ),
 
     GARDENER(
-            "Gardener", 550, 35, 2.5f, 20, "Time Control"
+            "Gardener", 550, 35, 2.5f, 20, "Time Control", InfinityStone.TIME
     ),
 
     RUNNER(
-            "Runner", 500, 50, 4.0f, 25, "Teleport Strike"
+            "Runner", 500, 50, 4.0f, 25, "Teleport Strike", InfinityStone.SPACE
     ),
 
     COLLECTOR(
-            "Collector", 650, 40, 1.8f, 35, "Reality Trap"
+            "Collector", 650, 40, 1.8f, 35, "Reality Trap", InfinityStone.REALITY
     ),
 
     GRANDMASTER(
-            "Grandmaster", 700, 45, 2.0f, 30, "Mind Control"
+            "Grandmaster", 700, 45, 2.0f, 30, "Mind Control", InfinityStone.MIND
     );
 
     private final String displayName;
@@ -32,6 +34,7 @@ public enum BossType {
     private final float speed;
     private final int defense;
     private final String abilityName;
+    private final InfinityStone stone;
 
     BossType(
             String displayName,
@@ -39,7 +42,7 @@ public enum BossType {
             int damage,
             float speed,
             int defense,
-            String abilityName
+            String abilityName, InfinityStone stone
     ) {
         this.displayName = displayName;
         this.health = health;
@@ -47,7 +50,10 @@ public enum BossType {
         this.speed = speed;
         this.defense = defense;
         this.abilityName = abilityName;
+        this.stone = stone;
     }
+
+    public InfinityStone stone() { return stone; }
 
     public String getDisplayName() {
         return displayName;

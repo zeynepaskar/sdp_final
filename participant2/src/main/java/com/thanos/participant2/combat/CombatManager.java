@@ -1,14 +1,14 @@
-
 package com.thanos.participant2.combat;
 
-import com.thanos.participant2.enemies.BossEnemy;
 import com.thanos.participant2.enemies.BossType;
 import com.thanos.participant2.enemies.Enemy;
 import com.thanos.participant2.factory.BossEnemyFactory;
 import com.thanos.participant2.strategy.BossStrategySelector;
 import com.thanos.participant2.strategy.CombatStrategy;
+import com.thanos.participant2.strategy.RegularEnemyStrategySelector;
 import com.thanos.participant3.Combatant;
 import com.thanos.participant3.patterns.decorator.HitResolver;
+import com.thanos.participant3.patterns.decorator.Portal;
 import com.thanos.participant3.patterns.observer.EventBus;
 
 import java.util.Optional;
@@ -16,7 +16,7 @@ import java.util.Optional;
 public class CombatManager {
 
     private final EventBus events;
-    private final HitResolver resolver;
+    private final Portal portal;
     private final Combatant thanos;
 
     private final BossEnemyFactory bossFactory;
@@ -25,7 +25,11 @@ public class CombatManager {
     private TurnBattleController currentBattle;
 
     public CombatManager(EventBus events, Combatant thanos) {
-        if (events == null || thanos == null) {
+        this(events, thanos, Portal.NONE);
+    }
+
+    public CombatManager(EventBus events, Combatant thanos, Portal portal) {
+        if (events == null || thanos == null || portal == null) {
             throw new IllegalArgumentException(
                     "CombatManager requires events and Thanos"
             );
@@ -33,10 +37,14 @@ public class CombatManager {
 
         this.events = events;
         this.thanos = thanos;
-        this.resolver = new HitResolver(events);
+        this.portal = portal;
 
         this.bossFactory = new BossEnemyFactory();
         this.bossStrategySelector = new BossStrategySelector();
+    }
+
+    public TurnBattleController startBattle(Enemy enemy) {
+        return startBattle(enemy, RegularEnemyStrategySelector.getStrategy(enemy));
     }
 
     public TurnBattleController startBattle(
@@ -53,7 +61,7 @@ public class CombatManager {
 
         currentBattle = new TurnBattleController(
                 events,
-                resolver,
+                new HitResolver(events, portal),
                 thanos,
                 enemy,
                 strategy,
@@ -76,7 +84,7 @@ public class CombatManager {
 
         ensureNoActiveBattle();
 
-        BossEnemy boss = (BossEnemy) bossFactory.create(
+        Enemy boss = bossFactory.create(
                 bossType,
                 x,
                 y
@@ -86,7 +94,7 @@ public class CombatManager {
 
         currentBattle = new TurnBattleController(
                 events,
-                resolver,
+                new HitResolver(events, portal),
                 thanos,
                 boss,
                 strategy,
