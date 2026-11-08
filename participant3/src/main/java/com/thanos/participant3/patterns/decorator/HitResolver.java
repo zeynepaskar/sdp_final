@@ -26,7 +26,10 @@ public final class HitResolver {
         if (attacker == null || target == null || attack == null) {
             throw new IllegalArgumentException("Attacker, target and attack are required");
         }
-        int dealt = attack.ignoresDefense() ? attack.damage() : Math.max(0, attack.damage() - target.defense());
+        int defense = Math.max(0, Math.min(80, target.defense()));
+        int dealt = (attack.ignoresDefense() || attack.unblockable())
+                ? attack.damage()
+                : attack.damage() * (100 - defense) / 100;
         if (portal.opensFor(target)) {
             lastWound.put(target.name(), 0);
             sendBack(attacker, target, dealt);
