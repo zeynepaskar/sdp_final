@@ -69,6 +69,10 @@ public final class BattleScreen implements Disposable {
     private final EnergyFlash energyFlash = new EnergyFlash();
     private GameEvent portalEvent;
     private long portalStart;
+    private GameEvent harvestEvent;
+    private long harvestStart;
+    private static final int HARVEST_SPARKS = 16;
+    private static final float HARVEST_SECONDS = 1.6f;
 
     public BattleScreen(TurnBattle battle, Inventory inventory, BattleMessages messages, int enemyRgba) {
         if (battle == null || inventory == null || messages == null) {
@@ -241,6 +245,20 @@ public final class BattleScreen implements Disposable {
         return (TimeUtils.millis() - portalStart) / 1000f;
     }
 
+    /** Seconds since the Soul Stone's after-victory heal appeared, or -1 while it is not shown. */
+    private float harvestTime() {
+        GameEvent event = messages.currentEvent();
+        if (event == null || event.type() != GameEventType.HEAL || battle.state() != BattleState.WON) {
+            harvestEvent = null;
+            return -1;
+        }
+        if (event != harvestEvent) {
+            harvestEvent = event;
+            harvestStart = TimeUtils.millis();
+        }
+        return (TimeUtils.millis() - harvestStart) / 1000f;
+    }
+
     private static boolean pressed(int key) { return Gdx.input.isKeyJustPressed(key); }
 
     public void render(Matrix4 projection) {
@@ -249,6 +267,7 @@ public final class BattleScreen implements Disposable {
         Combatant enemy = battle.enemy(), thanos = battle.thanos();
         Thanos leveled = leveled();
         float portal = portalTime();
+        float harvest = harvestTime();
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         backdrop.draw(shapes);
@@ -258,6 +277,7 @@ public final class BattleScreen implements Disposable {
         if (enemy.isAlive() || battle.state() != BattleState.WON) drawEnemy(portal > 0.85f && portal < 1.2f);
         drawThanos();
         if (portal >= 0) drawPortals(portal);
+        if (harvest >= 0 && harvest < HARVEST_SECONDS) drawHarvest(harvest);
         panel(80, 600, 470, 110);
         bar(110, 620, 300, 16, enemy.health(), enemy.maxHealth(), HEALTH);
         panel(730, 250, 500, 150);
@@ -348,12 +368,18 @@ public final class BattleScreen implements Disposable {
                     Color tint = cost <= inventory.energy() ? ink : MUTED;
                     float x = boxX(slot) + (ability.isBase() ? 16 : 44), y = boxY(slot);
                     text(ability.name(), x, y + BOX_H - 18, 1.3f, tint);
-                    text(cost == 0 ? "free" : cost + " EN", x, y + 32, 1.1f, tint);
+                    text(cost == 0 ? "free" : cost + " EN", x, y + 32, 1.1f, costColor(cost, tint));
                 }
                 if (pages() > 1) text((page() + 1) + "/" + pages(), ARROW_X - 12, 50, 1.1f, MUTED);
             }
             case STONES -> text("> Back", 830, 150, 1.8f, ink);
         }
+    }
+
+    /** Reality Stone passive: discounted costs are shown in the stone's colour. */
+    private Color costColor(int cost, Color tint) {
+        if (cost == 0 || tint == MUTED || !inventory.has(InfinityStone.REALITY)) return tint;
+        return color.set(InfinityStone.REALITY.rgba());
     }
 
     private void drawAttackBoxes() {
@@ -432,6 +458,25 @@ public final class BattleScreen implements Disposable {
         } else if (t >= 0.6f && t < 0.85f) {
             float p = (t - 0.6f) / 0.25f, size = 12 + 14 * p;
             shapes.rect(MathUtils.lerp(EXIT_X, ENEMY_X, p) - size / 2, MathUtils.lerp(EXIT_Y, ENEMY_Y, p) - size / 2, size, size);
+        }
+    }
+
+    /** Soul Stone passive: sparks rise from where the enemy fell and arc into Thanos. */
+    private void drawHarvest(float t) {
+        float toX = THANOS_X + Sprites.THANOS.width() * THANOS_SCALE / 2f;
+        float toY = THANOS_Y + Sprites.THANOS.height() * THANOS_SCALE / 2f;
+        for (int i = 0; i < HARVEST_SPARKS; i++) {
+            float p = MathUtils.clamp((t - i * 0.05f) / 0.8f, 0, 1);
+            if (p <= 0 || p >= 1) continue;
+            float fromX = ENEMY_X + (i * 53 % 120) - 60, fromY = ENEMY_Y - 40 + (i * 29 % 90);
+            float eased = p * p * (3 - 2 * p);
+            float x = MathUtils.lerp(fromX, toX, eased);
+            float y = MathUtils.lerp(fromY, toY, eased) + MathUtils.sin(p * MathUtils.PI) * (70 + i * 37 % 80);
+            float size = 10 * (1 - 0.6f * p);
+            color.set(InfinityStone.SOUL.rgba());
+            if (i % 3 == 0) color.lerp(Color.WHITE, 0.5f);
+            shapes.setColor(color);
+            shapes.rect(x - size / 2, y - size / 2, size, size);
         }
     }
 

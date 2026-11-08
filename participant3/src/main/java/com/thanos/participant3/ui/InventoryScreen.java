@@ -132,7 +132,9 @@ public final class InventoryScreen implements Disposable {
             Ability ability = abilities.get(row);
             float y = ROW_TOP - (row - page.firstRow()) * ROW_HEIGHT;
             text(ability.name(), 90, y, 1.2f, Hud.INK);
-            text(inventory.costOf(ability) + " EN", 290, y, 1.2f, Hud.INK);
+            boolean discounted = inventory.has(InfinityStone.REALITY) && inventory.costOf(ability) > 0;
+            text(inventory.costOf(ability) + " EN", 290, y, 1.2f,
+                    discounted ? color.set(InfinityStone.REALITY.rgba()) : Hud.INK);
             text(ability.description(), 380, y, 1.1f, Hud.INK);
         }
         if (page.firstRow() > 0) text("^", 1210, ROW_TOP, 1.4f, Hud.INK);
