@@ -18,6 +18,7 @@ public abstract class AttackDecorator implements Attack {
     public int rewindPercent() { return wrapped.rewindPercent(); }
     public boolean ignoresDefense() { return wrapped.ignoresDefense(); }
     public boolean unblockable() { return wrapped.unblockable(); }
+    public boolean turnsDefenseIntoDamage() { return wrapped.turnsDefenseIntoDamage(); }
     public int slowPercent() { return wrapped.slowPercent(); }
     public int stunTurns() { return wrapped.stunTurns(); }
 }

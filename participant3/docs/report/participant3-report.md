@@ -128,8 +128,8 @@ Each of the six stones changes an attack in its own way:
 | Soul | lifesteal |
 | Power | more damage |
 | Time | weaker counterattack |
-| Space | unblockable (ignores defense) |
-| Reality | ignores defense |
+| Space | unblockable: ignores defense |
+| Reality | defense becomes extra damage |
 | Mind | stun |
 
 There are 18 abilities (three per stone), and they combine effects. For example, *Rewind* deals half damage and
@@ -158,7 +158,7 @@ public interface Attack {
     default int lifestealPercent() { return 0; }
     default boolean ignoresDefense() { return false; }
     default int stunTurns() { return 0; }
-    // ... selfHeal, rewindPercent, unblockable, slowPercent
+    // ... selfHeal, rewindPercent, unblockable, turnsDefenseIntoDamage, slowPercent
 }
 ```
 
@@ -272,7 +272,7 @@ The module has 72 JUnit 5 tests, and all of them pass (`mvn -f participant3/pom.
 - the Power Stone raises damage and extends the description;
 - stones stack without a class per combination;
 - decorators keep the other effects of the wrapped attack;
-- the Reality Stone ignores defense;
+- defense blocks a plain hit, the Space Stone ignores it, the Reality Stone turns it into damage;
 - the Soul Stone heals the attacker;
 - a decorator needs something to wrap.
 

@@ -10,6 +10,7 @@ public interface Attack {
     default int rewindPercent() { return 0; }
     default boolean ignoresDefense() { return false; }
     default boolean unblockable() { return false; }
+    default boolean turnsDefenseIntoDamage() { return false; }
     default int slowPercent() { return 0; }
     default int stunTurns() { return 0; }
 }

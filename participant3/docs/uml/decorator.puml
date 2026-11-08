@@ -30,6 +30,7 @@ interface Attack <<Component>> {
   +rewindPercent() : int
   +ignoresDefense() : boolean
   +unblockable() : boolean
+  +turnsDefenseIntoDamage() : boolean
   +slowPercent() : int
   +stunTurns() : int
 }
@@ -58,7 +59,7 @@ package "Stone decorators" {
     unblockable
   }
   class RealityStoneDecorator <<ConcreteDecorator>> {
-    ignores defense
+    defense becomes damage
   }
   class MindStoneDecorator <<ConcreteDecorator>> {
     stun +1 turn

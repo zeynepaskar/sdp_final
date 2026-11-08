@@ -28,8 +28,7 @@ public final class HitResolver {
         if (attacker == null || target == null || attack == null) {
             throw new IllegalArgumentException("Attacker, target and attack are required");
         }
-        int dealt = attack.ignoresDefense() || attack.unblockable()
-                ? attack.damage() : applyDefense(attack.damage(), target.defense());
+        int dealt = damageAgainst(attack, target.defense());
         if (portal.opensFor(target)) {
             lastWound.put(target.name(), 0);
             sendBack(attacker, target, dealt);
@@ -55,8 +54,17 @@ public final class HitResolver {
 
     /** Defense is a percent of damage blocked, capped at 80. */
     public static int applyDefense(int damage, int defense) {
-        return damage * (100 - Math.max(0, Math.min(MAX_DEFENSE, defense))) / 100;
+        return damage * (100 - clampDefense(defense)) / 100;
     }
+
+    /** Reality turns defense into extra damage; Space and Reality pass through it; anything else is blocked. */
+    public static int damageAgainst(Attack attack, int defense) {
+        if (attack.turnsDefenseIntoDamage()) return attack.damage() * (100 + clampDefense(defense)) / 100;
+        if (attack.ignoresDefense() || attack.unblockable()) return attack.damage();
+        return applyDefense(attack.damage(), defense);
+    }
+
+    private static int clampDefense(int defense) { return Math.max(0, Math.min(MAX_DEFENSE, defense)); }
 
     public int lastWound(Combatant combatant) { return lastWound.getOrDefault(combatant.name(), 0); }
 

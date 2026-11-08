@@ -53,7 +53,7 @@ class AbilityBookTest {
         assertEquals(40, punchWith("Gravity Well").slowPercent());
         Attack distortion = punchWith("Distortion");
         assertEquals(90, distortion.damage());
-        assertTrue(distortion.ignoresDefense());
+        assertTrue(distortion.turnsDefenseIntoDamage());
         assertEquals(50, punchWith("Transmutation").slowPercent());
         Attack spike = punchWith("Mind Spike");
         assertEquals(90, spike.damage());

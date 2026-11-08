@@ -36,8 +36,8 @@ public final class AbilityBook {
                     new Ability("Gravity Well", SPACE, 30, "Crushes the enemy: its next hit is 40% weaker",
                             attack -> new WeakenDecorator(SPACE.empower(attack), 40))),
             REALITY, List.of(
-                    new Ability("Law Breaker", REALITY, 30, "Switches off the enemy's defense for one hit"),
-                    new Ability("Distortion", REALITY, 45, "Bends reality: +50% damage through defense",
+                    new Ability("Law Breaker", REALITY, 30, "Turns the enemy's defense into extra damage"),
+                    new Ability("Distortion", REALITY, 45, "Bends reality: +50%, defense becomes damage",
                             attack -> new DamageScaleDecorator(REALITY.empower(attack), 150)),
                     new Ability("Transmutation", REALITY, 35, "Turns part of the enemy to stone: next hit -50%",
                             attack -> new WeakenDecorator(REALITY.empower(attack), 50))),
