@@ -62,12 +62,15 @@ public final class WorldLayout {
                     case 'T' -> Tile.TREE;
                     case '~' -> Tile.WATER;
                     case '#' -> Tile.ROCK;
-                    case '@', '>', '1', '2', 'B' -> {
+                    default -> {
+                        boolean storyMarker = symbol >= 'a' && symbol <= 'z';
+                        if (!storyMarker && "@>12B".indexOf(symbol) < 0) {
+                            throw new IllegalArgumentException("Unknown route tile " + symbol);
+                        }
                         if (layout.markers.put(symbol, new Cell(column, row)) != null)
                             throw new IllegalArgumentException("Duplicate route marker " + symbol);
                         yield Tile.PATH;
                     }
-                    default -> throw new IllegalArgumentException("Unknown route tile " + symbol);
                 };
             }
         }

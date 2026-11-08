@@ -1,14 +1,16 @@
 package com.thanos.participant1.levels;
 
 import com.thanos.participant1.characters.Thanos;
+import com.thanos.participant1.story.StoryMarker;
 import java.util.List;
 
 public record World(String id, String name, String subtitle, float width, float height,
                     float spawnX, float spawnY, float portalX, float portalY,
                     float portalWidth, float portalHeight, int backgroundRgba, int accentRgba,
-                    WorldLayout layout, List<Encounter> encounters) {
+                    WorldLayout layout, List<Encounter> encounters, List<StoryMarker> markers) {
     public World {
         encounters = List.copyOf(encounters);
+        markers = List.copyOf(markers);
         if (id == null || id.isBlank() || name == null || name.isBlank() || subtitle == null) {
             throw new IllegalArgumentException("World needs an id, name and subtitle");
         }

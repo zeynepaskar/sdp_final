@@ -4,6 +4,8 @@ import com.thanos.participant1.characters.Thanos;
 import com.thanos.participant1.levels.Encounter;
 import com.thanos.participant1.levels.World;
 import com.thanos.participant1.levels.WorldLayout;
+import com.thanos.participant1.story.StoryCommand;
+import com.thanos.participant1.story.StoryMarker;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +14,7 @@ import static com.thanos.participant1.levels.WorldLayout.TILE_SIZE;
 public final class WorldBuilder {
     private WorldLayout route;
     private final List<Encounter> encounters = new ArrayList<>();
+    private final List<StoryMarker> markers = new ArrayList<>();
     private String id = "world", name = "World", subtitle = "";
     private float width = 1120, height = 600;
     private float spawnX = 90, spawnY = 270;
@@ -39,6 +42,7 @@ public final class WorldBuilder {
     public WorldBuilder route(String tiles) {
         route = WorldLayout.fromRoute(tiles);
         encounters.clear();
+        markers.clear();
         WorldLayout.Cell entry = route.marker('@');
         WorldLayout.Cell exit = route.marker('>');
         size(route.width(), route.height());
@@ -54,9 +58,22 @@ public final class WorldBuilder {
         return this;
     }
 
+    public WorldBuilder marker(char symbol, String name, String sprite, StoryCommand command) {
+        if (route == null) throw new IllegalStateException("Choose a route before placing a marker");
+        if ((symbol < 'a' || symbol > 'z') && symbol != '>') {
+            throw new IllegalArgumentException("Use a lowercase marker or the return door");
+        }
+        WorldLayout.Cell cell = route.marker(symbol);
+        if (markers.stream().anyMatch(marker -> marker.cell().equals(cell))) {
+            throw new IllegalArgumentException("Marker already occupied: " + symbol);
+        }
+        markers.add(new StoryMarker(cell, name, sprite, command));
+        return this;
+    }
+
     public World build() {
         WorldLayout layout = route != null ? route : WorldLayout.forWorld(id, width, height, spawnX, spawnY, portalX, portalY);
         return new World(id, name, subtitle, width, height, spawnX, spawnY,
-                portalX, portalY, portalWidth, portalHeight, background, accent, layout, encounters);
+                portalX, portalY, portalWidth, portalHeight, background, accent, layout, encounters, markers);
     }
 }
