@@ -33,10 +33,10 @@ Ability --> Inventory : decorated Attack
 Inventory --> BattleScreen : Optional<Attack>
 BattleScreen -> SimpleTurnBattle : playerAttack(attack)
 SimpleTurnBattle -> HitResolver : resolve(thanos, enemy, attack)
-HitResolver -> HitResolver : damage() - defense = 138
+HitResolver -> HitResolver : damage() * (100 - defense)% = 133
 HitResolver -> EventBus : publish(DAMAGE, HEALTH_CHANGED)
 EventBus -> BattleMessages : onEvent(event)
 EventBus -> ConsoleLog : onEvent(event)
-BattleMessages --> Player : "Champion received 138 damage"
+BattleMessages --> Player : "Champion received 133 damage"
 SimpleTurnBattle -> SimpleTurnBattle : enemy turn
 @enduml

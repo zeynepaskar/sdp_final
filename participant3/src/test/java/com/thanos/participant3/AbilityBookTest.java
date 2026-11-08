@@ -67,7 +67,7 @@ class AbilityBookTest {
 
         new HitResolver(new EventBus()).resolve(thanos, champion, punchWith("Soul Mend"));
 
-        assertEquals(780, champion.health());
+        assertEquals(773, champion.health());
         assertEquals(650, thanos.health());
     }
 }

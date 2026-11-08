@@ -47,7 +47,7 @@ public final class SimpleTurnBattle implements TurnBattle {
     public OptionalInt nextEnemyDamage() {
         if (state.isOver()) return OptionalInt.empty();
         if (stunTurns > 0) return OptionalInt.of(0);
-        return OptionalInt.of(Math.max(0, enemyPower * (100 - slowPercent) / 100 - thanos.defense()));
+        return OptionalInt.of(HitResolver.applyDefense(enemyPower * (100 - slowPercent) / 100, thanos.defense()));
     }
 
     public void playerAttack(Attack attack) {

@@ -24,8 +24,8 @@ class SimpleTurnBattleTest {
         battle.enemyTurn();
 
         assertEquals(BattleState.PLAYER_TURN, battle.state());
-        assertEquals(765, champion.health());
-        assertEquals(920, thanos.health());
+        assertEquals(760, champion.health());
+        assertEquals(919, thanos.health());
         assertThrows(IllegalStateException.class, battle::enemyTurn);
     }
 
@@ -36,7 +36,7 @@ class SimpleTurnBattleTest {
         battle.playerDefend();
         battle.enemyTurn();
 
-        assertEquals(965, thanos.health());
+        assertEquals(960, thanos.health());
     }
 
     @Test

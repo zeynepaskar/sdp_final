@@ -128,7 +128,7 @@ Each of the six stones changes an attack in its own way:
 | Soul | lifesteal |
 | Power | more damage |
 | Time | weaker counterattack |
-| Space | unblockable |
+| Space | unblockable (ignores defense) |
 | Reality | ignores defense |
 | Mind | stun |
 
@@ -220,7 +220,7 @@ The Decorator builds the attack, and the Observer reports what it did. The diagr
 *Energy Blast* ability:
 
 1. The Power Stone decorates the punch twice (66 → 99 → 148).
-2. `HitResolver` subtracts the defense and applies 138 damage.
+2. `HitResolver` lets the defense block its percent of the damage (10%) and applies 133 damage.
 3. The result goes to every observer through the `EventBus`.
 
 ![Sequence of one hit](../uml/hit-sequence.png)
@@ -230,10 +230,10 @@ Console output of the same turn, printed by the `ConsoleLog` observer:
 ```
 [ENERGY_CHANGED] Thanos energy: 60/100
 [ABILITY_USED] Thanos used Energy Blast (Power Stone)
-[DAMAGE] Champion received 138 damage
-[HEALTH_CHANGED] Champion health: 606/800
-[DAMAGE] Thanos received 80 damage
-[HEALTH_CHANGED] Thanos health: 840/1000
+[DAMAGE] Champion received 133 damage
+[HEALTH_CHANGED] Champion health: 608/800
+[DAMAGE] Thanos received 81 damage
+[HEALTH_CHANGED] Thanos health: 838/1000
 ```
 
 The battle works with fighters only through the `Combatant` interface, so it does not depend on where they come
@@ -249,7 +249,7 @@ Choosing an ability; the description and energy cost come from the decorated abi
 
 ![Ability menu](img/ability-menu.png)
 
-The result of Energy Blast: 138 damage instead of 56 for a plain punch:
+The result of Energy Blast: 133 damage instead of 59 for a plain punch:
 
 ![Ability result](img/ability-result.png)
 

@@ -66,7 +66,7 @@ class SpacePortalTest {
 
         resolver.resolve(runner, thanos, new BasicAttack("Runner strike", 85));
 
-        assertEquals(1000 - 75, thanos.health());
+        assertEquals(1000 - 76, thanos.health());
         assertEquals(500, runner.health());
         assertTrue(events.stream().noneMatch(e -> e.type() == GameEventType.PORTAL));
     }
@@ -76,7 +76,7 @@ class SpacePortalTest {
         inventory.addStone(InfinityStone.SPACE);
         HitResolver resolver = new HitResolver(bus, new SpacePortal(inventory, rolls(0)));
 
-        assertEquals(50, resolver.resolve(thanos, runner, new BasicAttack("Punch", 60)));
+        assertEquals(54, resolver.resolve(thanos, runner, new BasicAttack("Punch", 60)));
     }
 
     @Test

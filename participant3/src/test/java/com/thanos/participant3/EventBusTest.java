@@ -21,8 +21,8 @@ class EventBusTest {
                 new FakeCombatant("Iron Man", 100, 100, 15), new BasicAttack("Punch", 50));
 
         assertEquals(hud, log);
-        assertEquals(new GameEvent(GameEventType.DAMAGE, "Iron Man", "Iron Man received 35 damage", 35), hud.get(0));
-        assertEquals("Iron Man health: 65/100", hud.get(1).message());
+        assertEquals(new GameEvent(GameEventType.DAMAGE, "Iron Man", "Iron Man received 42 damage", 42), hud.get(0));
+        assertEquals("Iron Man health: 58/100", hud.get(1).message());
     }
 
     @Test
