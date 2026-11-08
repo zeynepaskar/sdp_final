@@ -13,7 +13,7 @@ public final class DesktopLauncher {
         GameFacade facade = new GameFacade(WorldCatalog.createCampaign());
         ThanosGame game = new ThanosGame(facade);
         Lwjgl3ApplicationConfiguration configuration = new Lwjgl3ApplicationConfiguration();
-        configuration.setTitle("Thanos | The Infinity Journey");
+        configuration.setTitle("Thanos");
         configuration.setWindowedMode(1280, 800);
         configuration.setWindowSizeLimits(800, 500, -1, -1);
         configuration.useVsync(true);

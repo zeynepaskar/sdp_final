@@ -33,6 +33,7 @@ public final class InventoryScreen implements Disposable {
     private final Color color = new Color();
     private final Vector2 pointer = new Vector2();
     private boolean open;
+    private int mouseX, mouseY;
 
     public InventoryScreen(Inventory inventory, Combatant thanos) {
         page = new InventoryPage(inventory, thanos);
@@ -43,6 +44,8 @@ public final class InventoryScreen implements Disposable {
 
     public void open() {
         open = true;
+        mouseX = Gdx.input.getX();
+        mouseY = Gdx.input.getY();
         page.reset();
     }
 
@@ -58,8 +61,12 @@ public final class InventoryScreen implements Disposable {
         if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.S)) page.move(1);
         if (pressed(Input.Keys.UP) || pressed(Input.Keys.W)) page.move(-1);
         if (viewport == null) return;
-        viewport.unproject(pointer.set(Gdx.input.getX(), Gdx.input.getY()));
+        int x = Gdx.input.getX(), y = Gdx.input.getY();
         boolean click = Gdx.input.isButtonJustPressed(Input.Buttons.LEFT);
+        if (!click && mouseX == x && mouseY == y) return;
+        mouseX = x;
+        mouseY = y;
+        viewport.unproject(pointer.set(x, y));
         if (click && pointer.x >= 1190 && pointer.x < 1240 && pointer.y >= ROW_TOP - 24 && pointer.y < ROW_TOP + 10) {
             page.move(-1);
         } else if (click && pointer.x >= 1190 && pointer.x < 1240 && pointer.y >= 48 && pointer.y < 82) {
