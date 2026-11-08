@@ -40,7 +40,11 @@ public final class WorldBuilder {
     public WorldBuilder colors(int background, int accent) { this.background = background; this.accent = accent; return this; }
 
     public WorldBuilder route(String tiles) {
-        route = WorldLayout.fromRoute(tiles);
+        return route(tiles, WorldLayout.Tile.PATH);
+    }
+
+    public WorldBuilder route(String tiles, WorldLayout.Tile paving) {
+        route = WorldLayout.fromRoute(tiles, paving);
         encounters.clear();
         markers.clear();
         WorldLayout.Cell entry = route.marker('@');

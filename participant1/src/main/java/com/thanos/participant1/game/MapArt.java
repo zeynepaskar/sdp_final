@@ -37,7 +37,7 @@ final class MapArt implements Disposable {
         return texture;
     }
 
-    void drawTerrain(SpriteBatch batch, World world, boolean gateOpen, float elapsed) {
+    void drawTerrain(SpriteBatch batch, World world, float elapsed) {
         if (lastWorld != world) {
             groundTint.set(world.backgroundRgba()).lerp(Color.WHITE, .4f);
             canopyTint.set(world.accentRgba()).lerp(Color.WHITE, .5f);
@@ -52,6 +52,9 @@ final class MapArt implements Disposable {
             }
         }
         batch.setColor(Color.WHITE);
+    }
+
+    void drawGate(SpriteBatch batch, World world, boolean gateOpen) {
         batch.draw(gateOpen ? openGate : closedGate, LEFT + world.portalX() - 8,
                 BOTTOM + world.portalY(), world.portalWidth() + 16, world.portalHeight());
     }
@@ -60,6 +63,12 @@ final class MapArt implements Disposable {
         Tile tile = layout.tileAt(column, row);
         float x = LEFT + column * TILE_SIZE, y = BOTTOM + row * TILE_SIZE;
         int variant = (column * 17 + row * 5 + (row ^ (column / 2))) % 3;
+        if (tile == Tile.STONEWORK || tile == Tile.BOARDWALK) {
+            int materialRow = tile == Tile.STONEWORK ? 4 : 5;
+            batch.setColor(groundTint);
+            batch.draw(tiles[materialRow][4 + variant], x, y, TILE_SIZE, TILE_SIZE);
+            return;
+        }
         int frame = switch (tile) {
             case PATH -> 3 + variant;
             case WATER -> 6 + ((row + wave) & 1);

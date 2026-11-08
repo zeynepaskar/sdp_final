@@ -6,6 +6,7 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Disposable;
 import com.thanos.participant1.characters.PlayerView;
 import com.thanos.participant1.levels.Encounter;
+import com.thanos.participant1.levels.WorldLayout;
 import com.thanos.participant1.patterns.facade.GameFacade;
 import com.thanos.participant1.patterns.facade.GamePhase;
 import com.thanos.participant3.ui.CharacterSprites;
@@ -13,6 +14,7 @@ import com.thanos.participant3.ui.CharacterSprites;
 final class WorldRenderer implements Disposable {
     private final SpriteBatch batch = new SpriteBatch();
     private final MapArt art = new MapArt();
+    private final StoryArt storyArt = new StoryArt();
     private final CharacterSprites characters = new CharacterSprites();
 
     void setProjection(Matrix4 projection) { batch.setProjectionMatrix(projection); }
@@ -20,10 +22,11 @@ final class WorldRenderer implements Disposable {
     void render(GameFacade facade, float elapsed) {
         PlayerView player = facade.player();
         batch.begin();
-        art.drawTerrain(batch, facade.world(), facade.exitUnlocked(), elapsed);
-        drawTrainers(facade, player.y(), true);
+        art.drawTerrain(batch, facade.world(), elapsed);
+        if (!facade.inSideArea()) art.drawGate(batch, facade.world(), facade.exitUnlocked());
+        drawActors(facade, player.y(), true);
         art.drawPlayer(batch, player, elapsed);
-        drawTrainers(facade, player.y(), false);
+        drawActors(facade, player.y(), false);
         if (facade.phase() == GamePhase.ALERT) {
             Encounter trainer = facade.activeEncounter();
             batch.draw(art.alert(), MapArt.LEFT + trainer.x() + 8, MapArt.BOTTOM + trainer.y() + 44, 24, 24);
@@ -31,7 +34,13 @@ final class WorldRenderer implements Disposable {
         batch.end();
     }
 
-    private void drawTrainers(GameFacade facade, float playerY, boolean behindPlayer) {
+    private void drawActors(GameFacade facade, float playerY, boolean behindPlayer) {
+        for (var marker : facade.world().markers()) {
+            float y = marker.cell().row() * WorldLayout.TILE_SIZE;
+            if ((y >= playerY) == behindPlayer) {
+                storyArt.draw(batch, marker.sprite(), marker.cell().column() * WorldLayout.TILE_SIZE, y);
+            }
+        }
         for (Encounter enemy : facade.world().encounters()) {
             if (facade.isCleared(enemy) || (enemy.y() >= playerY) != behindPlayer) continue;
             TextureRegion sprite = characters.enemy(enemy.kind().displayName());
@@ -45,6 +54,7 @@ final class WorldRenderer implements Disposable {
 
     @Override
     public void dispose() {
+        storyArt.dispose();
         characters.dispose();
         art.dispose();
         batch.dispose();

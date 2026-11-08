@@ -9,8 +9,8 @@ public final class WorldLayout {
     private final Map<Character, Cell> markers = new HashMap<>();
     public static final float TILE_SIZE = 40f;
     public enum Tile {
-        GRASS, PATH, TREE, WATER, ROCK;
-        public boolean isWalkable() { return this == GRASS || this == PATH; }
+        GRASS, PATH, STONEWORK, BOARDWALK, TREE, WATER, ROCK;
+        public boolean isWalkable() { return this == GRASS || this == PATH || this == STONEWORK || this == BOARDWALK; }
     }
     private final float width;
     private final float height;
@@ -46,6 +46,11 @@ public final class WorldLayout {
     }
 
     public static WorldLayout fromRoute(String route) {
+        return fromRoute(route, Tile.PATH);
+    }
+
+    public static WorldLayout fromRoute(String route, Tile paving) {
+        if (!paving.isWalkable()) throw new IllegalArgumentException("Paths and marker tiles must be walkable");
         List<String> lines = route.lines().toList();
         if (lines.isEmpty()) throw new IllegalArgumentException("A route needs tiles");
         int columns = lines.get(0).length();
@@ -58,7 +63,7 @@ public final class WorldLayout {
                 char symbol = text.charAt(column);
                 layout.tiles[row][column] = switch (symbol) {
                     case '.' -> Tile.GRASS;
-                    case '=' -> Tile.PATH;
+                    case '=' -> paving;
                     case 'T' -> Tile.TREE;
                     case '~' -> Tile.WATER;
                     case '#' -> Tile.ROCK;
@@ -69,7 +74,7 @@ public final class WorldLayout {
                         }
                         if (layout.markers.put(symbol, new Cell(column, row)) != null)
                             throw new IllegalArgumentException("Duplicate route marker " + symbol);
-                        yield Tile.PATH;
+                        yield paving;
                     }
                 };
             }

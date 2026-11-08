@@ -1,0 +1,21 @@
+markers.png
+size: 160, 96
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+gamora
+  bounds: 0, 0, 40, 48
+nebula
+  bounds: 40, 0, 40, 48
+receiver
+  bounds: 80, 0, 40, 48
+backup
+  bounds: 120, 0, 40, 48
+radio
+  bounds: 0, 48, 40, 48
+observatory-door
+  bounds: 40, 48, 40, 48
+dock-door
+  bounds: 80, 48, 40, 48
+return-door
+  bounds: 120, 48, 40, 48

@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.thanos.participant1.patterns.facade.GameFacade;
@@ -26,6 +27,8 @@ public class ThanosGame extends Game {
     private BattleScreen battle;
     private GamePhase displayedPhase;
     private Label location;
+    private Label prompt;
+    private StoryPanel storyPanel;
     private String displayedWorld;
     private float elapsed;
 
@@ -35,6 +38,7 @@ public class ThanosGame extends Game {
     @Override
     public void create() {
         theme = new UiTheme();
+        storyPanel = new StoryPanel(theme);
         stage = new Stage(new FitViewport(1280, 800));
         renderer = new WorldRenderer();
         Gdx.input.setInputProcessor(stage);
@@ -59,13 +63,22 @@ public class ThanosGame extends Game {
         menu.clear();
         displayedPhase = facade.phase();
         location = null;
+        prompt = null;
         if (displayedPhase == GamePhase.BATTLE) return;
         if (displayedPhase != GamePhase.MENU) {
             location = theme.label("", 2);
             displayedWorld = null;
             location.setPosition(80, 742);
             stage.addActor(location);
-            if (displayedPhase == GamePhase.PLAYING || displayedPhase == GamePhase.ALERT) return;
+            if (displayedPhase == GamePhase.PLAYING) {
+                prompt = theme.label("", 1.45f);
+                prompt.setAlignment(Align.right);
+                prompt.setBounds(790, 733, 410, 40);
+                stage.addActor(prompt);
+                stage.addActor(storyPanel);
+                return;
+            }
+            if (displayedPhase == GamePhase.ALERT) return;
         }
 
         Table root = new Table();
@@ -129,6 +142,12 @@ public class ThanosGame extends Game {
                 renderer.setProjection(stage.getCamera().combined);
                 renderer.render(facade, elapsed);
             }
+            if (prompt != null) {
+                var dialogue = facade.dialogue();
+                storyPanel.show(dialogue);
+                var marker = dialogue == null ? facade.nearbyMarker() : null;
+                prompt.setText(marker == null ? "" : "Z  " + marker.name());
+            }
             stage.act(delta);
             stage.draw();
         }
@@ -152,6 +171,13 @@ public class ThanosGame extends Game {
             if (!facade.rewards().isPlaying()) closeBattle();
             return;
         }
+        if (phase == GamePhase.PLAYING && facade.dialogue() != null) {
+            if (pressed(Input.Keys.X)) facade.cancel();
+            else if (pressed(Input.Keys.Z)) facade.confirm();
+            else if (pressed(Input.Keys.UP) || pressed(Input.Keys.LEFT)) facade.navigateStory(-1);
+            else if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.RIGHT)) facade.navigateStory(1);
+            return;
+        }
         if ((phase == GamePhase.PLAYING || phase == GamePhase.BATTLE)
                 && pressed(Input.Keys.I)) {
             bag.open();
@@ -168,11 +194,11 @@ public class ThanosGame extends Game {
             }
             case PLAYING -> {
                 if (pressed(Input.Keys.X)) {
-                    facade.pauseGame();
+                    facade.cancel();
                     return;
                 }
                 if (pressed(Input.Keys.Z)) {
-                    facade.interactWithPortal();
+                    facade.confirm();
                     return;
                 }
                 float x = axis(Input.Keys.LEFT, Input.Keys.RIGHT);
