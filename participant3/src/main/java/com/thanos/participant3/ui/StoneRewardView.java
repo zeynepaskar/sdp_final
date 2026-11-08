@@ -102,7 +102,7 @@ public final class StoneRewardView implements Disposable {
         }
         centered("New abilities:  " + abilities, line, 1.4f, color.set(stoneColor).mul(1, 1, 1, alpha), 0);
         if ((int) (time * 2) % 2 == 0) {
-            centered("ENTER or click", 110, 1.2f, color.set(Hud.PAPER).mul(1, 1, 1, 0.6f * alpha), 0);
+            centered("Z or click", 110, 1.2f, color.set(Hud.PAPER).mul(1, 1, 1, 0.6f * alpha), 0);
         }
         batch.end();
     }

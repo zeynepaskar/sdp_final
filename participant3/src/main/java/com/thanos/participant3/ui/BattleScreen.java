@@ -94,8 +94,8 @@ public final class BattleScreen implements Disposable {
     public void update(Viewport viewport) {
         boolean mouse = viewport != null;
         boolean click = mouse && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT);
-        boolean confirm = pressed(Input.Keys.ENTER) || pressed(Input.Keys.SPACE);
-        boolean back = pressed(Input.Keys.ESCAPE) || pressed(Input.Keys.BACKSPACE)
+        boolean confirm = pressed(Input.Keys.Z);
+        boolean back = pressed(Input.Keys.X)
                 || mouse && Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT);
         if (messages.hasPending()) {
             if (confirm || click) messages.advance();
@@ -113,14 +113,14 @@ public final class BattleScreen implements Disposable {
         if (battle.state() != BattleState.PLAYER_TURN || battle.skipPlayerTurnIfStunned()) return;
         int before = cursor;
         if (menu == Menu.MAIN) {
-            if (pressed(Input.Keys.RIGHT) || pressed(Input.Keys.D)) cursor = cursor ^ 1;
-            if (pressed(Input.Keys.LEFT) || pressed(Input.Keys.A)) cursor = cursor ^ 1;
-            if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.S)) cursor = cursor ^ 2;
-            if (pressed(Input.Keys.UP) || pressed(Input.Keys.W)) cursor = cursor ^ 2;
+            if (pressed(Input.Keys.RIGHT)) cursor = cursor ^ 1;
+            if (pressed(Input.Keys.LEFT)) cursor = cursor ^ 1;
+            if (pressed(Input.Keys.DOWN)) cursor = cursor ^ 2;
+            if (pressed(Input.Keys.UP)) cursor = cursor ^ 2;
         } else {
             int size = menu == Menu.ATTACK ? attacks().size() + 1 : 1;
-            if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.S)) cursor = (cursor + 1) % size;
-            if (pressed(Input.Keys.UP) || pressed(Input.Keys.W)) cursor = (cursor + size - 1) % size;
+            if (pressed(Input.Keys.DOWN)) cursor = (cursor + 1) % size;
+            if (pressed(Input.Keys.UP)) cursor = (cursor + size - 1) % size;
         }
         int hovered = mouse ? itemUnderMouse(viewport) : -1;
         boolean moved = mouse && (Gdx.input.getX() != lastMouseX || Gdx.input.getY() != lastMouseY);
@@ -325,7 +325,7 @@ public final class BattleScreen implements Disposable {
                 : battle.state().isOver() ? "" : hint.isEmpty() ? "What will Thanos do?" : hint;
         text(line, 44, 160, 1.7f, Hud.INK);
         if (messages.hasPending() && TimeUtils.millis() / 500 % 2 == 0) {
-            text("ENTER or click  >>", 530, 52, 1.3f, Hud.INK);
+            text("Z or click  >>", 530, 52, 1.3f, Hud.INK);
         }
     }
 

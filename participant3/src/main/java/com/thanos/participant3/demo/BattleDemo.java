@@ -115,13 +115,13 @@ public final class BattleDemo extends ApplicationAdapter {
             regularIndex = -1;
             startBattle();
         }
-        boolean menuKey = Gdx.input.isKeyJustPressed(Input.Keys.I) || Gdx.input.isKeyJustPressed(Input.Keys.TAB);
+        boolean menuKey = Gdx.input.isKeyJustPressed(Input.Keys.I);
         if (inventoryScreen.isOpen()) {
             inventoryScreen.update(viewport);
         } else if (menuKey && !rewards.isPlaying()) {
             inventoryScreen.open();
         } else if (rewards.isPlaying()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
+            if (Gdx.input.isKeyJustPressed(Input.Keys.Z)
                     || Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) rewards.skip();
             rewards.update(Math.min(Gdx.graphics.getDeltaTime(), 0.1f));
         } else {

@@ -58,10 +58,10 @@ Or run `java --enable-native-access=ALL-UNNAMED -jar participant3/target/partici
 
 | Key | Action |
 |---|---|
-| Arrows or WASD | move in the menu |
-| ENTER or SPACE | choose; next message |
-| ESC or BACKSPACE | back |
-| I or TAB | inventory |
+| Arrows | move in the menu |
+| Z | choose; next message |
+| X | back |
+| I | inventory |
 | F1 | give the next stone |
 | F2 | +100 XP |
 | F3 | fight a regular enemy (Outrider, Chitauri, Sakaaran) |

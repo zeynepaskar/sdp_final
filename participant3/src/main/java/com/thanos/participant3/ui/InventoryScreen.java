@@ -53,13 +53,13 @@ public final class InventoryScreen implements Disposable {
 
     public void update(Viewport viewport) {
         if (!open) return;
-        if (pressed(Input.Keys.I) || pressed(Input.Keys.TAB) || pressed(Input.Keys.ESCAPE)
+        if (pressed(Input.Keys.I) || pressed(Input.Keys.X)
                 || Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
             close();
             return;
         }
-        if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.S)) page.move(1);
-        if (pressed(Input.Keys.UP) || pressed(Input.Keys.W)) page.move(-1);
+        if (pressed(Input.Keys.DOWN)) page.move(1);
+        if (pressed(Input.Keys.UP)) page.move(-1);
         if (viewport == null) return;
         int x = Gdx.input.getX(), y = Gdx.input.getY();
         boolean click = Gdx.input.isButtonJustPressed(Input.Buttons.LEFT);
@@ -118,7 +118,7 @@ public final class InventoryScreen implements Disposable {
 
         batch.begin();
         text("INVENTORY", 40, 782, 2.2f, Hud.INK);
-        text("I / TAB / ESC close     arrows scroll", 900, 774, 1.1f, MUTED);
+        text("I / X close     arrows scroll", 900, 774, 1.1f, MUTED);
         text(thanos.name().toUpperCase() + (leveled != null ? "    Lv " + leveled.level() : ""), 60, 712, 1.6f, Hud.INK);
         text("HP " + thanos.health() + "/" + thanos.maxHealth(), 304, 654, 1f, Hud.INK);
         text("EN " + inventory.energy() + "/" + inventory.maxEnergy(), 304, 624, 1f, Hud.INK);

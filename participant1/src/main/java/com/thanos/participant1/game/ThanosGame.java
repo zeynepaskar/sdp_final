@@ -17,6 +17,7 @@ import com.thanos.participant3.ui.StoneRewardView;
 
 public class ThanosGame extends Game {
     private final GameFacade facade;
+    private final MenuCursor menu = new MenuCursor();
     private Stage stage;
     private UiTheme theme;
     private WorldRenderer renderer;
@@ -55,6 +56,7 @@ public class ThanosGame extends Game {
 
     private void rebuildPanel() {
         stage.clear();
+        menu.clear();
         displayedPhase = facade.phase();
         location = null;
         if (displayedPhase == GamePhase.BATTLE) return;
@@ -102,6 +104,7 @@ public class ThanosGame extends Game {
     private TextButton addButton(Table panel, String text, Runnable action) {
         TextButton button = theme.button(text, action);
         panel.add(button).width(330).height(52).padBottom(10).row();
+        menu.add(button, text, action);
         return button;
     }
 
@@ -143,30 +146,39 @@ public class ThanosGame extends Game {
             return;
         }
         if (showingReward()) {
-            if (pressed(Input.Keys.ENTER) || pressed(Input.Keys.SPACE)
+            if (pressed(Input.Keys.Z)
                     || Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) facade.rewards().skip();
             facade.rewards().update(delta);
             if (!facade.rewards().isPlaying()) closeBattle();
             return;
         }
         if ((phase == GamePhase.PLAYING || phase == GamePhase.BATTLE)
-                && (pressed(Input.Keys.I) || pressed(Input.Keys.TAB))) {
+                && pressed(Input.Keys.I)) {
             bag.open();
             return;
         }
         switch (phase) {
-            case MENU -> { if (pressed(Input.Keys.ENTER)) startGame(); }
-            case PAUSED -> { if (pressed(Input.Keys.ESCAPE)) facade.resumeGame(); }
+            case MENU, PAUSED, COMPLETE -> {
+                if (pressed(Input.Keys.X)) {
+                    if (phase == GamePhase.PAUSED) facade.resumeGame();
+                    if (phase == GamePhase.COMPLETE) showMenu();
+                } else if (pressed(Input.Keys.Z)) menu.confirm();
+                else if (pressed(Input.Keys.UP)) menu.move(-1);
+                else if (pressed(Input.Keys.DOWN)) menu.move(1);
+            }
             case PLAYING -> {
-                if (pressed(Input.Keys.ESCAPE)) {
+                if (pressed(Input.Keys.X)) {
                     facade.pauseGame();
                     return;
                 }
-                float x = axis(Input.Keys.A, Input.Keys.LEFT, Input.Keys.D, Input.Keys.RIGHT);
-                float y = axis(Input.Keys.S, Input.Keys.DOWN, Input.Keys.W, Input.Keys.UP);
+                if (pressed(Input.Keys.Z)) {
+                    facade.interactWithPortal();
+                    return;
+                }
+                float x = axis(Input.Keys.LEFT, Input.Keys.RIGHT);
+                float y = axis(Input.Keys.DOWN, Input.Keys.UP);
                 facade.update(delta, x, y);
                 elapsed += delta;
-                if (pressed(Input.Keys.E)) facade.interactWithPortal();
             }
             case ALERT -> facade.update(delta, 0, 0);
             case BATTLE -> {
@@ -177,7 +189,6 @@ public class ThanosGame extends Game {
                     if (!facade.rewards().isPlaying()) closeBattle();
                 }
             }
-            case COMPLETE -> { }
         }
     }
 
@@ -189,9 +200,9 @@ public class ThanosGame extends Game {
 
     private static boolean pressed(int key) { return Gdx.input.isKeyJustPressed(key); }
 
-    private static int axis(int negative, int otherNegative, int positive, int otherPositive) {
-        int minus = Gdx.input.isKeyPressed(negative) || Gdx.input.isKeyPressed(otherNegative) ? 1 : 0;
-        int plus = Gdx.input.isKeyPressed(positive) || Gdx.input.isKeyPressed(otherPositive) ? 1 : 0;
+    private static int axis(int negative, int positive) {
+        int minus = Gdx.input.isKeyPressed(negative) ? 1 : 0;
+        int plus = Gdx.input.isKeyPressed(positive) ? 1 : 0;
         return plus - minus;
     }
 
