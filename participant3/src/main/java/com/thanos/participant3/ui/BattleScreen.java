@@ -3,9 +3,11 @@ package com.thanos.participant3.ui;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
@@ -44,7 +46,8 @@ public final class BattleScreen implements Disposable {
     private static final Color PORTAL_CORE = Color.valueOf("0B1E3A");
     private static final float PORTAL_X = 530, PORTAL_Y = 340, EXIT_X = 870, EXIT_Y = 560;
     private static final float ENEMY_X = 980, ENEMY_Y = 560;
-    private static final float THANOS_X = 278, THANOS_Y = 236, THANOS_SCALE = 5, ENEMY_SCALE = 8;
+    private static final float CHARACTER_SCALE = 3;
+    private static final float THANOS_X = 264, THANOS_Y = 236;
     private enum Menu { MAIN, ATTACK, STONES }
 
     private final TurnBattle battle;
@@ -52,7 +55,8 @@ public final class BattleScreen implements Disposable {
     private final BattleMessages messages;
     private final int enemyRgba;
     private final Backdrop backdrop;
-    private final PixelSprite enemySprite;
+    private final CharacterSprites sprites = new CharacterSprites();
+    private final TextureRegion enemySprite;
     private final ShapeRenderer shapes = new ShapeRenderer();
     private final SpriteBatch batch = new SpriteBatch();
     private final BitmapFont font = new BitmapFont();
@@ -77,7 +81,7 @@ public final class BattleScreen implements Disposable {
         this.messages = messages;
         this.enemyRgba = enemyRgba;
         this.backdrop = new Backdrop(enemyRgba);
-        this.enemySprite = Sprites.forEnemy(battle.enemy().name());
+        this.enemySprite = sprites.enemy(battle.enemy().name());
         font.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
     }
 
@@ -241,8 +245,16 @@ public final class BattleScreen implements Disposable {
         shapes.setColor(backdrop.shadow());
         shapes.ellipse(800, 455, 360, 80);
         shapes.ellipse(150, 205, 420, 90);
+        shapes.end();
+
+        batch.begin();
         if (enemy.isAlive() || battle.state() != BattleState.WON) drawEnemy(portal > 0.85f && portal < 1.2f);
-        drawThanos();
+        batch.draw(sprites.thanos, THANOS_X, THANOS_Y, sprites.thanos.getRegionWidth() * CHARACTER_SCALE,
+                sprites.thanos.getRegionHeight() * CHARACTER_SCALE);
+        batch.end();
+
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        drawStones();
         if (portal >= 0) drawPortals(portal);
         panel(80, 600, 470, 110);
         bar(110, 620, 300, 16, enemy.health(), enemy.maxHealth(), HEALTH);
@@ -347,25 +359,18 @@ public final class BattleScreen implements Disposable {
     }
 
     private void drawEnemy(boolean hit) {
+        float width = enemySprite.getRegionWidth() * CHARACTER_SCALE;
+        float height = enemySprite.getRegionHeight() * CHARACTER_SCALE;
         float shake = hit ? MathUtils.sin(TimeUtils.millis() / 15f) * 6 : 0;
-        if (enemySprite != null) {
-            // tall sprites (the Elders) are drawn at Thanos's finer pixel size
-            float scale = enemySprite.height() > 24 ? THANOS_SCALE : ENEMY_SCALE;
-            float x = ENEMY_X - enemySprite.width() * scale / 2 + shake;
-            enemySprite.draw(shapes, x, 488, scale, key -> hit
-                    ? Color.rgba8888(color.set(enemySprite.rgba(key)).lerp(Color.WHITE, 0.6f))
-                    : enemySprite.rgba(key));
-            return;
+        float left = Math.round(ENEMY_X - width / 2 + shake);
+        batch.draw(enemySprite, left, 488, width, height);
+        if (hit) {
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
+            batch.setColor(1, 1, 1, .65f);
+            batch.draw(enemySprite, left, 488, width, height);
+            batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            batch.setColor(Color.WHITE);
         }
-        shapes.setColor(Hud.INK);
-        shapes.rect(918 + shake, 488, 124, 144);
-        color.set(enemyRgba);
-        if (hit) color.lerp(Color.WHITE, 0.6f);
-        shapes.setColor(color);
-        shapes.rect(922 + shake, 492, 116, 136);
-        shapes.setColor(Hud.INK);
-        shapes.rect(950 + shake, 590, 14, 14);
-        shapes.rect(996 + shake, 590, 14, 14);
     }
 
     private void drawPortals(float t) {
@@ -404,20 +409,20 @@ public final class BattleScreen implements Disposable {
         }
     }
 
-    /** Stones Thanos has not got yet, or that are still flying in, show as empty sockets. */
-    private void drawThanos() {
-        Sprites.THANOS.draw(shapes, THANOS_X, THANOS_Y, THANOS_SCALE, key -> {
-            InfinityStone stone = Sprites.stoneOf(key);
-            if (stone == null) return Sprites.THANOS.rgba(key);
-            return inventory.has(stone) && stone != hiddenStone ? stone.rgba() : Sprites.SOCKET;
-        });
+    private void drawStones() {
+        for (InfinityStone stone : InfinityStone.values()) {
+            if (stone == hiddenStone || !inventory.has(stone)) continue;
+            Vector2 center = gauntletSlot(stone);
+            shapes.setColor(color.set(stone.rgba()));
+            shapes.rect(center.x - CHARACTER_SCALE, center.y - CHARACTER_SCALE, 2 * CHARACTER_SCALE, 2 * CHARACTER_SCALE);
+        }
     }
 
-    /** Centre of the stone's 2x2 socket in the gauntlet. */
+    /** Centers of the gauntlet sockets in the battle sprite, converted to screen coordinates. */
     public static Vector2 gauntletSlot(InfinityStone stone) {
-        int[] socket = Sprites.socket(stone);
-        return new Vector2(THANOS_X + (socket[0] + 1) * THANOS_SCALE,
-                THANOS_Y + (Sprites.THANOS.height() - 1 - socket[1]) * THANOS_SCALE);
+        CharacterSprites.Socket socket = CharacterSprites.socket(stone);
+        return new Vector2(THANOS_X + (socket.x() + 1) * CHARACTER_SCALE,
+                THANOS_Y + (64 - socket.yFromTop() - 1) * CHARACTER_SCALE);
     }
 
     private void panel(float x, float y, float w, float h) {
@@ -461,6 +466,7 @@ public final class BattleScreen implements Disposable {
     }
 
     public void dispose() {
+        sprites.dispose();
         shapes.dispose();
         batch.dispose();
         font.dispose();

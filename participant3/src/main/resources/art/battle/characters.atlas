@@ -1,0 +1,25 @@
+characters.png
+size: 320, 128
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+Thanos
+  bounds: 0, 0, 64, 64
+Outrider
+  bounds: 64, 0, 64, 64
+Chitauri
+  bounds: 128, 0, 64, 64
+Sakaaran
+  bounds: 192, 0, 64, 64
+In-Betweener
+  bounds: 256, 0, 64, 64
+Champion
+  bounds: 0, 64, 64, 64
+Gardener
+  bounds: 64, 64, 64, 64
+Runner
+  bounds: 128, 64, 64, 64
+Collector
+  bounds: 192, 64, 64, 64
+Grandmaster
+  bounds: 256, 64, 64, 64
