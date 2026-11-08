@@ -217,6 +217,9 @@ new Ability("Time Loop", TIME, 35, "Rewind, and the enemy's next hit is 25% weak
 - A new stone effect or ability is one small class or one line in `AbilityBook`. No existing class changes.
 - Effects combine freely. The test `AttackDecoratorTest.stonesStackWithoutAClassPerCombination` checks this.
 - `HitResolver` does not care how many layers an attack has; it only asks the final object.
+- The same questions describe enemy attacks. With the Mind Stone the battle shows *Foresight*: `TurnBattle.nextEnemyAttack`
+  returns the blow the enemy is about to make, and `EnemyIntent` reads its name, damage and effects (stun, weakening,
+  ignores defense, lifesteal) straight from the decorated `Attack`.
 
 ## 3. How the two patterns work together
 
@@ -245,15 +248,15 @@ from. The standalone battle demo of this module (`run-battle-demo.bat`) uses sim
 
 ## 4. Screenshots
 
-Battle with an Elder (the backdrop is tinted by the world's stone):
+Battle with the Champion (the backdrop is tinted by the world's stone; the enemy box shows HP, defense and boss status):
 
 ![Battle](img/battle.png)
 
-Choosing an ability; the description and energy cost come from the decorated ability:
+Choosing an ability in the 2x2 menu (a small gem marks stone skills); the description and energy cost come from the decorated ability:
 
 ![Ability menu](img/ability-menu.png)
 
-The result of Energy Blast: 133 damage instead of 59 for a plain punch:
+The result of Energy Blast: 133 damage instead of 59 for a plain punch; the Power Stone passive highlights the number ("Might +10%"):
 
 ![Ability result](img/ability-result.png)
 
