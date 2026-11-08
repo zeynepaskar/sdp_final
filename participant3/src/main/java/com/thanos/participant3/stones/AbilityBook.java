@@ -9,9 +9,8 @@ import com.thanos.participant3.patterns.decorator.WeakenDecorator;
 import java.util.*;
 
 /**
- * Thanos's eight skills: two base ones and one per stone. Each new stone unlocks its skill and upgrades
- * the next skill in line (base skills first, then stone skills in the order they were found); the sixth
- * stone completes the gauntlet and upgrades everything that is left.
+ * Thanos's eight skills: two base ones and one per stone. Each new stone unlocks its skill; the sixth stone
+ * completes the gauntlet and upgrades all eight skills at once.
  */
 public final class AbilityBook {
     private static final List<Skill> BASE = List.of(
@@ -83,7 +82,7 @@ public final class AbilityBook {
 
     /** How many skills (counted in unlock order) are upgraded once this many stones are found. */
     public static int upgradedCount(int stoneCount) {
-        return stoneCount >= InfinityStone.values().length ? BASE.size() + stoneCount : stoneCount;
+        return stoneCount >= InfinityStone.values().length ? BASE.size() + stoneCount : 0;
     }
 
     /** The abilities Thanos can use with these stones, each in its plain or upgraded form. */

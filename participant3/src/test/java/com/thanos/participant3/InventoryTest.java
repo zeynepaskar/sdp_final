@@ -45,7 +45,7 @@ class InventoryTest {
         inventory.addStone(InfinityStone.SOUL);
 
         assertEquals(List.of(InfinityStone.TIME, InfinityStone.SOUL), inventory.stonesInOrder());
-        assertEquals(List.of("Crushing Blow", "Titan's Wrath", "Rewind", "Soul Drain"),
+        assertEquals(List.of("Punch", "Titan's Fury", "Rewind", "Soul Drain"),
                 inventory.abilities().stream().map(Ability::name).toList());
     }
 

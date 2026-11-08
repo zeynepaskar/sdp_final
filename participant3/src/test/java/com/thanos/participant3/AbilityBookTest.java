@@ -40,11 +40,12 @@ class AbilityBookTest {
     }
 
     @Test
-    void eachStoneUnlocksOneSkillAndUpgradesTheNextInLine() {
+    void eachStoneUnlocksOneSkillInTheOrderFound() {
         assertEquals(List.of("Punch", "Titan's Fury"), names(List.of()));
-        assertEquals(List.of("Crushing Blow", "Titan's Fury", "Mind Blast"), names(List.of(InfinityStone.MIND)));
-        assertEquals(List.of("Crushing Blow", "Titan's Wrath", "Mind Spike", "Soul Drain", "Rewind"),
+        assertEquals(List.of("Punch", "Titan's Fury", "Mind Blast"), names(List.of(InfinityStone.MIND)));
+        assertEquals(List.of("Punch", "Titan's Fury", "Mind Blast", "Soul Drain", "Rewind"),
                 names(List.of(InfinityStone.MIND, InfinityStone.SOUL, InfinityStone.TIME)));
+        assertEquals(List.of(), AbilityBook.upgradedByLast(List.of(InfinityStone.SPACE)));
     }
 
     @Test
@@ -53,10 +54,9 @@ class AbilityBookTest {
 
         assertEquals(List.of("Crushing Blow", "Titan's Wrath", "Life Siphon", "Planet Breaker", "Time Loop",
                 "Gravity Well", "Reality Rewrite", "Mind Spike"), names(all));
-        assertEquals(List.of("Gravity Well", "Reality Rewrite", "Mind Spike"),
-                AbilityBook.upgradedByLast(all).stream().map(skill -> skill.upgraded().name()).toList());
-        assertEquals(List.of("Crushing Blow"),
-                AbilityBook.upgradedByLast(List.of(InfinityStone.SPACE)).stream().map(skill -> skill.upgraded().name()).toList());
+        assertEquals(AbilityBook.allSkills(), AbilityBook.upgradedByLast(all));
+        assertEquals(List.of("Punch", "Titan's Fury", "Soul Drain", "Energy Blast", "Rewind", "Portal Strike",
+                "Distortion"), names(all.subList(0, 5)));
     }
 
     @Test

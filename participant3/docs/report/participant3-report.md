@@ -133,7 +133,7 @@ Each of the six stones changes an attack in its own way:
 | Mind | stun |
 
 Thanos has eight skills: two base ones (*Punch*, *Titan's Fury*) and one per stone. Every new stone unlocks its
-skill and upgrades the next skill in line; the sixth stone completes the gauntlet and upgrades the rest. Skills
+skill; the sixth stone completes the gauntlet and upgrades all eight at once. Skills
 combine effects: *Rewind* deals half damage and undoes the enemy's last blow, and its upgrade *Time Loop* also
 weakens the enemy's next hit. A subclass for every combination (`PowerSoulAttack`, `PowerPowerAttack`, ...) would
 explode in number and could not be built at runtime.
