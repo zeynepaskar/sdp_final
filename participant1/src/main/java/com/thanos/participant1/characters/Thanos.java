@@ -2,7 +2,6 @@ package com.thanos.participant1.characters;
 
 import com.thanos.participant1.levels.World;
 
-/** Player position and feet-based movement through the tile map. */
 public final class Thanos {
     public static final float WIDTH = 30f, HEIGHT = 42f, FEET_HEIGHT = 16f, SPEED = 240f;
     private float x;
