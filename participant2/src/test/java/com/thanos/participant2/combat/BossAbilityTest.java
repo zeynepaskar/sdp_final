@@ -38,20 +38,55 @@ class BossAbilityTest {
     }
 
     @Test
-    void collectorStunsThanosButHeCanAttackAfterTheLostTurn() {
-        TurnBattleController battle = createBattle(BossType.COLLECTOR, new RealityTrapStrategy());
+    void collectorStunsOnlyEveryThirdAttack() {
+        TurnBattleController battle = createBattle(
+                BossType.COLLECTOR,
+                new RealityTrapStrategy()
+        );
         BasicAttack attack = new BasicAttack("Punch", 50);
+
+        // Attack 1: ordinary strike, Thanos can act.
+        battle.playerDefend();
+        battle.enemyTurn();
+        assertEquals(BattleState.PLAYER_TURN, battle.state());
+        assertFalse(battle.skipPlayerTurnIfStunned());
+
+        // Attack 2: ordinary strike, Thanos can act again.
+        battle.playerAttack(attack);
+        battle.enemyTurn();
+        assertEquals(BattleState.PLAYER_TURN, battle.state());
+        assertFalse(battle.skipPlayerTurnIfStunned());
+
+        // Attack 3: Reality Trap stuns Thanos for exactly one turn.
+        battle.playerAttack(attack);
+        battle.enemyTurn();
+        assertTrue(battle.skipPlayerTurnIfStunned());
+        assertEquals(BattleState.ENEMY_TURN, battle.state());
+
+        // Attack 4 is ordinary again; after the skipped turn Thanos can attack.
+        battle.enemyTurn();
+        int healthBefore = battle.enemy().health();
+        battle.playerAttack(attack);
+        assertTrue(battle.enemy().health() < healthBefore);
+    }
+
+    @Test
+    void repeatedDamagePreviewsDoNotAdvanceCollectorAttackCycle() {
+        TurnBattleController battle = createBattle(
+                BossType.COLLECTOR,
+                new RealityTrapStrategy()
+        );
+
+        assertTrue(battle.nextEnemyDamage().isPresent());
+        assertTrue(battle.nextEnemyDamage().isPresent());
+        assertTrue(battle.nextEnemyDamage().isPresent());
 
         battle.playerDefend();
         battle.enemyTurn();
-        int initialHealth = battle.enemy().health();
-        battle.playerAttack(attack);
-        assertEquals(initialHealth, battle.enemy().health());
-        assertEquals(BattleState.ENEMY_TURN, battle.state());
 
-        battle.enemyTurn();
-        battle.playerAttack(attack);
-        assertTrue(battle.enemy().health() < initialHealth);
+        // The first actual attack was ordinary; previews did not consume turns.
+        assertEquals(BattleState.PLAYER_TURN, battle.state());
+        assertFalse(battle.skipPlayerTurnIfStunned());
     }
 
     @Test

@@ -35,6 +35,9 @@ public class TurnBattleController implements TurnBattle {
 
     private boolean defending;
 
+    // Cache the strategy result so UI previews do not advance boss attack cycles.
+    private Attack preparedEnemyBaseAttack;
+
     public TurnBattleController(
             EventBus events,
             HitResolver resolver,
@@ -94,7 +97,6 @@ public class TurnBattleController implements TurnBattle {
         if (stunTurns > 0) {
             return OptionalInt.of(0);
         }
-
         return OptionalInt.of(HitResolver.damageAgainst(nextEnemyAttack(), thanos));
     }
 
@@ -182,6 +184,7 @@ public class TurnBattleController implements TurnBattle {
         } else {
             Attack attack = nextEnemyAttack();
             int dealt = resolver.resolve(enemy, thanos, attack);
+            preparedEnemyBaseAttack = null;
             if (dealt > 0 && thanos.isAlive()) {
                 if (!recoveringFromStun) playerStunTurns += attack.stunTurns();
                 playerDamageReductionPercent = Math.max(playerDamageReductionPercent, attack.slowPercent());
@@ -209,13 +212,16 @@ public class TurnBattleController implements TurnBattle {
     }
 
     private Attack nextEnemyAttack() {
-        Attack attack = enemyStrategy.createAttack(enemy);
+        if (preparedEnemyBaseAttack == null) {
+            preparedEnemyBaseAttack = enemyStrategy.createAttack(enemy);
+        }
+
+        Attack attack = preparedEnemyBaseAttack;
         if (slowPercent > 0) attack = new DamageScaleDecorator(attack, 100 - slowPercent);
         if (defending) attack = new DamageScaleDecorator(attack, 50);
         return attack;
     }
 
-    @Override
     public boolean skipPlayerTurnIfStunned() {
         if (state != BattleState.PLAYER_TURN || playerStunTurns <= 0) {
             return false;
