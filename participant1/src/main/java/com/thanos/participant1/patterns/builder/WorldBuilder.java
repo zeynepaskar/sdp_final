@@ -1,10 +1,17 @@
 package com.thanos.participant1.patterns.builder;
 
+import com.thanos.participant1.characters.Thanos;
+import com.thanos.participant1.levels.Encounter;
 import com.thanos.participant1.levels.World;
 import com.thanos.participant1.levels.WorldLayout;
+import java.util.ArrayList;
+import java.util.List;
 
-/** Fluent construction keeps world configuration readable and produces immutable worlds. */
+import static com.thanos.participant1.levels.WorldLayout.TILE_SIZE;
+
 public final class WorldBuilder {
+    private WorldLayout route;
+    private final List<Encounter> encounters = new ArrayList<>();
     private String id = "world", name = "World", subtitle = "";
     private float width = 1120, height = 600;
     private float spawnX = 90, spawnY = 270;
@@ -29,9 +36,27 @@ public final class WorldBuilder {
     }
     public WorldBuilder colors(int background, int accent) { this.background = background; this.accent = accent; return this; }
 
+    public WorldBuilder route(String tiles) {
+        route = WorldLayout.fromRoute(tiles);
+        encounters.clear();
+        WorldLayout.Cell entry = route.marker('@');
+        WorldLayout.Cell exit = route.marker('>');
+        size(route.width(), route.height());
+        spawn((entry.column() + .5f) * TILE_SIZE - Thanos.WIDTH / 2,
+                (entry.row() + .5f) * TILE_SIZE - Thanos.FEET_HEIGHT / 2);
+        return portal(exit.column() * TILE_SIZE, exit.row() * TILE_SIZE, TILE_SIZE, TILE_SIZE * 1.5f);
+    }
+
+    public WorldBuilder encounter(char marker, Encounter.Kind kind, Encounter.Facing facing) {
+        if (route == null) throw new IllegalStateException("Choose a route before placing encounters");
+        WorldLayout.Cell cell = route.marker(marker);
+        encounters.add(new Encounter(kind, cell.column(), cell.row(), facing));
+        return this;
+    }
+
     public World build() {
-        WorldLayout layout = WorldLayout.forWorld(id, width, height, spawnX, spawnY, portalX, portalY);
+        WorldLayout layout = route != null ? route : WorldLayout.forWorld(id, width, height, spawnX, spawnY, portalX, portalY);
         return new World(id, name, subtitle, width, height, spawnX, spawnY,
-                portalX, portalY, portalWidth, portalHeight, background, accent, layout);
+                portalX, portalY, portalWidth, portalHeight, background, accent, layout, encounters);
     }
 }

@@ -1,7 +1,12 @@
 package com.thanos.participant1.levels;
 
-/** Generated once, then read by movement and rendering without exposing mutable tiles. */
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public final class WorldLayout {
+    public record Cell(int column, int row) { }
+    private final Map<Character, Cell> markers = new HashMap<>();
     public static final float TILE_SIZE = 40f;
     public enum Tile {
         GRASS, PATH, TREE, WATER, ROCK;
@@ -11,7 +16,7 @@ public final class WorldLayout {
     private final float height;
     private final Tile[][] tiles;
 
-    private WorldLayout(float width, float height, int variation) {
+    private WorldLayout(float width, float height) {
         if (!Float.isFinite(width) || !Float.isFinite(height) || width <= 0 || height <= 0
                 || Math.ceil(width / TILE_SIZE) * Math.ceil(height / TILE_SIZE) > 1_000_000) {
             throw new IllegalArgumentException("Map needs positive dimensions and at most one million tiles");
@@ -19,11 +24,6 @@ public final class WorldLayout {
         this.width = width;
         this.height = height;
         tiles = new Tile[rows()][columns()];
-        for (int row = 0; row < rows(); row++) {
-            for (int column = 0; column < columns(); column++) {
-                tiles[row][column] = width == 1120 && height == 600 ? terrain(column, row, variation) : Tile.GRASS;
-            }
-        }
     }
 
     public float width() { return width; }
@@ -45,9 +45,50 @@ public final class WorldLayout {
         return true;
     }
 
+    public static WorldLayout fromRoute(String route) {
+        List<String> lines = route.lines().toList();
+        if (lines.isEmpty()) throw new IllegalArgumentException("A route needs tiles");
+        int columns = lines.get(0).length();
+        WorldLayout layout = new WorldLayout(columns * TILE_SIZE, lines.size() * TILE_SIZE);
+        for (int line = 0; line < lines.size(); line++) {
+            String text = lines.get(line);
+            if (text.length() != columns) throw new IllegalArgumentException("Route rows have different lengths");
+            int row = lines.size() - 1 - line;
+            for (int column = 0; column < columns; column++) {
+                char symbol = text.charAt(column);
+                layout.tiles[row][column] = switch (symbol) {
+                    case '.' -> Tile.GRASS;
+                    case '=' -> Tile.PATH;
+                    case 'T' -> Tile.TREE;
+                    case '~' -> Tile.WATER;
+                    case '#' -> Tile.ROCK;
+                    case '@', '>', '1', '2', 'B' -> {
+                        if (layout.markers.put(symbol, new Cell(column, row)) != null)
+                            throw new IllegalArgumentException("Duplicate route marker " + symbol);
+                        yield Tile.PATH;
+                    }
+                    default -> throw new IllegalArgumentException("Unknown route tile " + symbol);
+                };
+            }
+        }
+        return layout;
+    }
+
+    public Cell marker(char symbol) {
+        Cell cell = markers.get(symbol);
+        if (cell == null) throw new IllegalArgumentException("Missing route marker " + symbol);
+        return cell;
+    }
+
     public static WorldLayout forWorld(String id, float width, float height,
                                        float spawnX, float spawnY, float portalX, float portalY) {
-        WorldLayout layout = new WorldLayout(width, height, Math.floorMod(id == null ? 0 : id.hashCode(), 3));
+        WorldLayout layout = new WorldLayout(width, height);
+        int variation = Math.floorMod(id == null ? 0 : id.hashCode(), 3);
+        for (int row = 0; row < layout.rows(); row++) {
+            for (int column = 0; column < layout.columns(); column++) {
+                layout.tiles[row][column] = width == 1120 && height == 600 ? terrain(column, row, variation) : Tile.GRASS;
+            }
+        }
         int startX = (int) (spawnX / TILE_SIZE), startY = (int) (spawnY / TILE_SIZE);
         int endX = (int) (portalX / TILE_SIZE), endY = (int) (portalY / TILE_SIZE);
         layout.path(Math.min(startX, endX) - 1, startY - 1, Math.max(startX, endX) + 2, startY + 2);

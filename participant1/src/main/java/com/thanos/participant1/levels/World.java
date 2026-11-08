@@ -1,13 +1,14 @@
 package com.thanos.participant1.levels;
 
 import com.thanos.participant1.characters.Thanos;
+import java.util.List;
 
-/** Immutable world assembled by WorldBuilder. */
 public record World(String id, String name, String subtitle, float width, float height,
                     float spawnX, float spawnY, float portalX, float portalY,
                     float portalWidth, float portalHeight, int backgroundRgba, int accentRgba,
-                    WorldLayout layout) {
+                    WorldLayout layout, List<Encounter> encounters) {
     public World {
+        encounters = List.copyOf(encounters);
         if (id == null || id.isBlank() || name == null || name.isBlank() || subtitle == null) {
             throw new IllegalArgumentException("World needs an id, name and subtitle");
         }
