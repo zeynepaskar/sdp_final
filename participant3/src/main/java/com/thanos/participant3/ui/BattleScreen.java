@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -25,20 +26,25 @@ import com.thanos.participant3.patterns.observer.GameEvent;
 import com.thanos.participant3.patterns.observer.GameEventType;
 import com.thanos.participant3.progress.Thanos;
 import com.thanos.participant3.stones.Ability;
+import com.thanos.participant3.stones.AbilityBook;
 import com.thanos.participant3.stones.InfinityStone;
 import java.util.List;
 
 /** Battle view and input over TurnBattle; call update() then render() every frame. */
 public final class BattleScreen implements Disposable {
     public static final int PUNCH_DAMAGE = 60;
-    private static final int VISIBLE_ROWS = 7;
-    private static final int SCROLL_UP = -2, SCROLL_DOWN = -3;
+    /** Attack menu: four boxes a page, the arrow on the right turns the page. */
+    private static final int PAGE = 4, PAGE_ARROW = -2;
+    private static final float BOX_X = 804, BOX_Y = 28, BOX_W = 196, BOX_H = 80, BOX_GAP_X = 204, BOX_GAP_Y = 88;
+    private static final float ARROW_X = 1234, ARROW_Y = 112;
+    private static final String[] GEM = {"...#...", "..#L#..", ".#LCC#.", "#LCCCD#", ".#CCD#.", "..#D#..", "...#..."};
     private static final String[] MAIN = {"Attack", "Stones", "Defend", "Flee"};
     private static final Color SHADOW = Color.valueOf("D8D2B0");
     private static final Color HEALTH = Color.valueOf("C0392B");
     private static final Color ENERGY = Color.valueOf("2E86DE");
     private static final Color EXPERIENCE = Color.valueOf("9B59B6");
     private static final Color MUTED = Color.valueOf("9A9480");
+    private static final Color TITAN = Color.valueOf("C9962A");
     private static final Color ENERGY_LIGHT = Color.valueOf("9CCBFF");
     private static final Color TIME_LIGHT = Color.valueOf("8FE3B0");
     private static final Color PORTAL = Color.valueOf("2E86DE");
@@ -62,15 +68,21 @@ public final class BattleScreen implements Disposable {
     private final BitmapFont font = new BitmapFont();
     private final Color color = new Color();
     private final Vector2 pointer = new Vector2();
+    private final GlyphLayout layout = new GlyphLayout();
+    private GameEvent mightEvent;
+    private long mightStart;
     private Menu menu = Menu.MAIN;
     private int cursor;
-    private int firstRow;
     private int lastMouseX = -1, lastMouseY = -1;
     private String hint = "";
     private InfinityStone hiddenStone;
     private final EnergyFlash energyFlash = new EnergyFlash();
     private GameEvent portalEvent;
     private long portalStart;
+    private GameEvent harvestEvent;
+    private long harvestStart;
+    private static final int HARVEST_SPARKS = 16;
+    private static final float HARVEST_SECONDS = 1.6f;
 
     public BattleScreen(TurnBattle battle, Inventory inventory, BattleMessages messages, int enemyRgba) {
         if (battle == null || inventory == null || messages == null) {
@@ -117,10 +129,8 @@ public final class BattleScreen implements Disposable {
             if (pressed(Input.Keys.LEFT) || pressed(Input.Keys.A)) cursor = cursor ^ 1;
             if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.S)) cursor = cursor ^ 2;
             if (pressed(Input.Keys.UP) || pressed(Input.Keys.W)) cursor = cursor ^ 2;
-        } else {
-            int size = menu == Menu.ATTACK ? attacks().size() + 1 : 1;
-            if (pressed(Input.Keys.DOWN) || pressed(Input.Keys.S)) cursor = (cursor + 1) % size;
-            if (pressed(Input.Keys.UP) || pressed(Input.Keys.W)) cursor = (cursor + size - 1) % size;
+        } else if (menu == Menu.ATTACK) {
+            moveInGrid();
         }
         int hovered = mouse ? itemUnderMouse(viewport) : -1;
         boolean moved = mouse && (Gdx.input.getX() != lastMouseX || Gdx.input.getY() != lastMouseY);
@@ -129,9 +139,7 @@ public final class BattleScreen implements Disposable {
             lastMouseY = Gdx.input.getY();
         }
         if (hovered >= 0 && (moved || click)) cursor = hovered;
-        if (click && hovered == SCROLL_UP) cursor = Math.max(0, cursor - 1);
-        if (click && hovered == SCROLL_DOWN) cursor = Math.min(attacks().size(), cursor + 1);
-        keepCursorVisible();
+        if (click && hovered == PAGE_ARROW) turnPage(page() + 1 < pages() ? page() + 1 : page() - 1, cursor % PAGE);
         if (cursor != before) hint = "";
         if (back && menu != Menu.MAIN) backToMain();
         else if (confirm || click && hovered >= 0) choose();
@@ -148,11 +156,13 @@ public final class BattleScreen implements Disposable {
                 }
             }
             case ATTACK -> {
-                if (x >= 1222 && x < 1262 && y >= 168 && y < 204) return SCROLL_UP;
-                if (x >= 1222 && x < 1262 && y >= 20 && y < 56) return SCROLL_DOWN;
-                if (x >= 800 && x < 1220 && y <= 194 && y > 194 - VISIBLE_ROWS * 22) {
-                    int row = firstRow + (int) ((194 - y) / 22);
-                    if (row <= attacks().size()) return row;
+                if (pages() > 1 && x >= ARROW_X - 24 && x < ARROW_X + 24 && y >= ARROW_Y - 30 && y < ARROW_Y + 30) {
+                    return PAGE_ARROW;
+                }
+                for (int slot = 0; slot < PAGE; slot++) {
+                    int index = page() * PAGE + slot;
+                    if (index < attacks().size() && x >= boxX(slot) && x < boxX(slot) + BOX_W
+                            && y >= boxY(slot) && y < boxY(slot) + BOX_H) return index;
                 }
             }
             case STONES -> {
@@ -162,10 +172,31 @@ public final class BattleScreen implements Disposable {
         return -1;
     }
 
-    private void keepCursorVisible() {
-        if (cursor < firstRow) firstRow = cursor;
-        if (cursor >= firstRow + VISIBLE_ROWS) firstRow = cursor - VISIBLE_ROWS + 1;
+    /** Arrows move inside the 2x2 grid; stepping past its right or left edge turns the page. */
+    private void moveInGrid() {
+        int count = attacks().size(), slot = cursor % PAGE;
+        if (pressed(Input.Keys.RIGHT) || pressed(Input.Keys.D)) {
+            if (slot % 2 == 0 && cursor + 1 < count) cursor++;
+            else if (slot % 2 == 1) turnPage(page() + 1, slot - 1);
+        }
+        if (pressed(Input.Keys.LEFT) || pressed(Input.Keys.A)) {
+            if (slot % 2 == 1) cursor--;
+            else turnPage(page() - 1, slot + 1);
+        }
+        boolean down = pressed(Input.Keys.DOWN) || pressed(Input.Keys.S);
+        boolean up = pressed(Input.Keys.UP) || pressed(Input.Keys.W);
+        if ((down || up) && (cursor ^ 2) < count) cursor ^= 2;
     }
+
+    private void turnPage(int page, int slot) {
+        if (page < 0 || page >= pages()) return;
+        cursor = Math.min(attacks().size() - 1, page * PAGE + slot);
+    }
+
+    private int page() { return cursor / PAGE; }
+    private int pages() { return (attacks().size() + PAGE - 1) / PAGE; }
+    private static float boxX(int slot) { return BOX_X + (slot % 2) * BOX_GAP_X; }
+    private static float boxY(int slot) { return BOX_Y + (1 - slot / 2) * BOX_GAP_Y; }
 
     private void choose() {
         hint = "";
@@ -182,14 +213,8 @@ public final class BattleScreen implements Disposable {
                 }
             }
             case ATTACK -> {
-                Attack punch = punch();
-                if (cursor == 0) {
-                    battle.playerAttack(punch);
-                    open(Menu.MAIN);
-                    return;
-                }
-                Ability ability = attacks().get(cursor - 1);
-                inventory.use(ability, punch).ifPresentOrElse(attack -> {
+                Ability ability = attacks().get(cursor);
+                inventory.use(ability, punch()).ifPresentOrElse(attack -> {
                     battle.playerAttack(attack);
                     open(Menu.MAIN);
                 }, () -> hint = "Not enough energy for " + ability.name());
@@ -207,7 +232,6 @@ public final class BattleScreen implements Disposable {
     private void open(Menu next) {
         menu = next;
         cursor = 0;
-        firstRow = 0;
     }
 
     private List<Ability> attacks() { return inventory.abilities(); }
@@ -231,6 +255,20 @@ public final class BattleScreen implements Disposable {
         return (TimeUtils.millis() - portalStart) / 1000f;
     }
 
+    /** Seconds since the Soul Stone's after-victory heal appeared, or -1 while it is not shown. */
+    private float harvestTime() {
+        GameEvent event = messages.currentEvent();
+        if (event == null || event.type() != GameEventType.HEAL || battle.state() != BattleState.WON) {
+            harvestEvent = null;
+            return -1;
+        }
+        if (event != harvestEvent) {
+            harvestEvent = event;
+            harvestStart = TimeUtils.millis();
+        }
+        return (TimeUtils.millis() - harvestStart) / 1000f;
+    }
+
     private static boolean pressed(int key) { return Gdx.input.isKeyJustPressed(key); }
 
     public void render(Matrix4 projection) {
@@ -239,6 +277,7 @@ public final class BattleScreen implements Disposable {
         Combatant enemy = battle.enemy(), thanos = battle.thanos();
         Thanos leveled = leveled();
         float portal = portalTime();
+        float harvest = harvestTime();
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         backdrop.draw(shapes);
@@ -256,6 +295,7 @@ public final class BattleScreen implements Disposable {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         drawStones();
         if (portal >= 0) drawPortals(portal);
+        if (harvest >= 0 && harvest < HARVEST_SECONDS) drawHarvest(harvest);
         panel(80, 600, 470, 110);
         bar(110, 620, 300, 16, enemy.health(), enemy.maxHealth(), HEALTH);
         panel(730, 250, 500, 150);
@@ -274,14 +314,22 @@ public final class BattleScreen implements Disposable {
                 shapes.rect(42, 166 - i * 24, 14, 14);
             }
         }
+        if (menu == Menu.ATTACK) drawAttackBoxes();
+        if (battle.state() == BattleState.PLAYER_TURN && !messages.hasPending() && inventory.has(InfinityStone.MIND)
+                && battle.nextEnemyDamage().isPresent()) {
+            panel(80, 546, 560, 44);
+            drawGem(InfinityStone.MIND, 94, 557, 3);
+        }
         shapes.end();
 
         batch.begin();
         text(enemy.name(), 110, 690, 1.6f, Hud.INK);
         boolean choosing = battle.state() == BattleState.PLAYER_TURN && !messages.hasPending();
+        text("HP " + enemy.health() + "/" + enemy.maxHealth() + "     Defense " + enemy.defense() + "%"
+                + (battle.canFlee() ? "" : "     Boss"), 110, 658, 1.1f, Hud.INK);
         if (choosing && inventory.has(InfinityStone.MIND)) {
-            battle.nextEnemyDamage().ifPresent(damage -> text(damage == 0 ? "Foresight: stunned"
-                    : "Foresight: next blow " + damage, 330, 684, 1.1f, Hud.INK));
+            battle.nextEnemyDamage().ifPresent(damage -> text("Foresight:  " + EnemyIntent.describe(
+                    battle.upcomingEnemyAttack().orElse(null), damage), 124, 574, 1.2f, Hud.INK));
         }
         text("HP", 420, 634, 1f, Hud.INK);
         text(thanos.name(), 760, 385, 1.6f, Hud.INK);
@@ -309,24 +357,59 @@ public final class BattleScreen implements Disposable {
             return;
         }
         if (menu == Menu.ATTACK && choosing) {
-            if (cursor == 0) {
-                text("Punch", 44, 170, 1.5f, Hud.INK);
-                text("A plain blow for " + punch().damage() + " damage", 44, 130, 1.2f, Hud.INK);
-            } else {
-                Ability ability = attacks().get(cursor - 1);
-                text(ability.name() + "  (" + ability.stone().displayName() + ", " + inventory.costOf(ability) + " EN)",
-                        44, 170, 1.5f, Hud.INK);
-                text(ability.description(), 44, 130, 1.2f, Hud.INK);
-            }
-            if (!hint.isEmpty()) text(hint, 44, 80, 1.2f, HEALTH);
+            Ability ability = attacks().get(cursor);
+            String source = ability.isBase() ? "Titan" : ability.stone().displayName();
+            text(ability.name() + "  (" + source + ", " + inventory.costOf(ability) + " EN"
+                    + (AbilityBook.isUpgraded(ability) ? ", upgraded" : "") + ")", 44, 170, 1.5f, Hud.INK);
+            text(ability.description(), 44, 130, 1.2f, Hud.INK);
+            text("Damage before defense: " + ability.apply(punch()).damage(), 44, 100, 1.2f, Hud.INK);
+            if (!hint.isEmpty()) text(hint, 44, 60, 1.2f, HEALTH);
             return;
         }
         String line = messages.hasPending() ? messages.current()
                 : battle.state().isOver() ? "" : hint.isEmpty() ? "What will Thanos do?" : hint;
-        text(line, 44, 160, 1.7f, Hud.INK);
+        if (!drawMightHit()) text(line, 44, 160, 1.7f, Hud.INK);
         if (messages.hasPending() && TimeUtils.millis() / 500 % 2 == 0) {
             text("ENTER or click  >>", 530, 52, 1.3f, Hud.INK);
         }
+    }
+
+    /**
+     * Power Stone passive: Thanos's blows show their damage in the stone's colour, flashing at first,
+     * with a "Might +10%" tag under the line. Returns false when the current message is not such a blow.
+     */
+    private boolean drawMightHit() {
+        GameEvent event = messages.currentEvent();
+        String number = event == null ? "" : " " + event.value() + " ";
+        boolean might = event != null && event.type() == GameEventType.DAMAGE && inventory.has(InfinityStone.POWER)
+                && !event.source().equals(battle.thanos().name()) && event.message().contains(number);
+        if (!might) {
+            mightEvent = null;
+            return false;
+        }
+        if (event != mightEvent) {
+            mightEvent = event;
+            mightStart = TimeUtils.millis();
+        }
+        long elapsed = TimeUtils.millis() - mightStart;
+        String message = event.message();
+        int at = message.lastIndexOf(number) + 1;
+        String before = message.substring(0, at), value = String.valueOf(event.value());
+        Color power = color.set(InfinityStone.POWER.rgba());
+        if (elapsed < 600 && elapsed / 100 % 2 == 0) power.lerp(Color.WHITE, 0.6f);
+        float x = 44 + width(before, 1.7f);
+        text(before, 44, 160, 1.7f, Hud.INK);
+        text(value, x, 160, 1.7f, power);
+        text(message.substring(at + value.length()), x + width(value, 1.7f), 160, 1.7f, Hud.INK);
+        text("Might +" + (Inventory.POWER_DAMAGE_PERCENT - 100) + "%", 44, 118, 1.2f,
+                color.set(InfinityStone.POWER.rgba()));
+        return true;
+    }
+
+    private float width(String value, float scale) {
+        font.getData().setScale(scale);
+        layout.setText(font, value);
+        return layout.width;
     }
 
     private void drawMenu() {
@@ -341,20 +424,76 @@ public final class BattleScreen implements Disposable {
             }
             case ATTACK -> {
                 List<Ability> abilities = attacks();
-                int rows = abilities.size() + 1;
-                int first = firstRow;
-                for (int row = first; row < Math.min(rows, first + VISIBLE_ROWS); row++) {
-                    Ability ability = row == 0 ? null : abilities.get(row - 1);
-                    String label = ability == null ? "Punch" : ability.name() + "   " + inventory.costOf(ability) + " EN";
-                    boolean affordable = ability == null || inventory.costOf(ability) <= inventory.energy();
-                    text((cursor == row ? "> " : "  ") + label, 820, 190 - (row - first) * 22, 1.2f,
-                            affordable ? ink : MUTED);
+                for (int slot = 0; slot < PAGE; slot++) {
+                    int index = page() * PAGE + slot;
+                    if (index >= abilities.size()) break;
+                    Ability ability = abilities.get(index);
+                    int cost = inventory.costOf(ability);
+                    Color tint = cost <= inventory.energy() ? ink : MUTED;
+                    float x = boxX(slot) + (ability.isBase() ? 16 : 44), y = boxY(slot);
+                    text(ability.name(), x, y + BOX_H - 18, 1.3f, tint);
+                    text(cost == 0 ? "free" : cost + " EN", x, y + 32, 1.1f, costColor(cost, tint));
                 }
-                if (abilities.isEmpty()) text("  no stones yet", 820, 166, 1.2f, MUTED);
-                if (first > 0) text("^", 1236, 190, 1.2f, MUTED);
-                if (first + VISIBLE_ROWS < rows) text("v", 1236, 46, 1.2f, MUTED);
+                if (pages() > 1) text((page() + 1) + "/" + pages(), ARROW_X - 12, 50, 1.1f, MUTED);
             }
             case STONES -> text("> Back", 830, 150, 1.8f, ink);
+        }
+    }
+
+    /** Reality Stone passive: discounted costs are shown in the stone's colour. */
+    private Color costColor(int cost, Color tint) {
+        if (cost == 0 || tint == MUTED || !inventory.has(InfinityStone.REALITY)) return tint;
+        return color.set(InfinityStone.REALITY.rgba());
+    }
+
+    private void drawAttackBoxes() {
+        boolean active = battle.state() == BattleState.PLAYER_TURN && !messages.hasPending();
+        List<Ability> abilities = attacks();
+        for (int slot = 0; slot < PAGE; slot++) {
+            int index = page() * PAGE + slot;
+            float x = boxX(slot), y = boxY(slot), border = active && index == cursor ? 6 : 3;
+            shapes.setColor(index < abilities.size() ? Hud.INK : SHADOW);
+            shapes.rect(x, y, BOX_W, BOX_H);
+            shapes.setColor(active && index == cursor ? SHADOW : Hud.PAPER);
+            shapes.rect(x + border, y + border, BOX_W - 2 * border, BOX_H - 2 * border);
+            if (index < abilities.size() && !abilities.get(index).isBase()) {
+                drawGem(abilities.get(index).stone(), x + 14, y + BOX_H - 36, 3);
+            }
+            if (index < abilities.size() && AbilityBook.isUpgraded(abilities.get(index))) drawUpgradeMark(x + BOX_W - 22, y + 10);
+        }
+        if (pages() > 1) {
+            shapes.setColor(Hud.INK);
+            if (page() + 1 < pages()) {
+                shapes.triangle(ARROW_X - 12, ARROW_Y + 18, ARROW_X - 12, ARROW_Y - 18, ARROW_X + 14, ARROW_Y);
+            } else {
+                shapes.triangle(ARROW_X + 12, ARROW_Y + 18, ARROW_X + 12, ARROW_Y - 18, ARROW_X - 14, ARROW_Y);
+            }
+        }
+    }
+
+    /** Gold plus in the corner of an upgraded ability's box. */
+    private void drawUpgradeMark(float x, float y) {
+        shapes.setColor(Hud.INK);
+        shapes.rect(x + 4, y - 2, 8, 20);
+        shapes.rect(x - 2, y + 4, 20, 8);
+        shapes.setColor(TITAN);
+        shapes.rect(x + 6, y, 4, 16);
+        shapes.rect(x, y + 6, 16, 4);
+    }
+
+    /** A small pixel gem in the stone's colour that marks a stone ability. */
+    private void drawGem(InfinityStone stone, float x, float y, float cell) {
+        for (int row = 0; row < GEM.length; row++) {
+            for (int col = 0; col < GEM[row].length(); col++) {
+                char key = GEM[row].charAt(col);
+                if (key == '.') continue;
+                color.set(stone.rgba());
+                if (key == '#') color.set(Hud.INK);
+                else if (key == 'L') color.lerp(Color.WHITE, 0.55f);
+                else if (key == 'D') color.mul(0.7f, 0.7f, 0.7f, 1);
+                shapes.setColor(color);
+                shapes.rect(x + col * cell, y + (GEM.length - 1 - row) * cell, cell, cell);
+            }
         }
     }
 
@@ -387,6 +526,27 @@ public final class BattleScreen implements Disposable {
         } else if (t >= 0.6f && t < 0.85f) {
             float p = (t - 0.6f) / 0.25f, size = 12 + 14 * p;
             shapes.rect(MathUtils.lerp(EXIT_X, ENEMY_X, p) - size / 2, MathUtils.lerp(EXIT_Y, ENEMY_Y, p) - size / 2, size, size);
+        }
+    }
+
+    /** Soul Stone passive: sparks rise from where the enemy fell and arc into Thanos. */
+    private void drawHarvest(float t) {
+        float toX = THANOS_X + sprites.thanos.getRegionWidth() * CHARACTER_SCALE / 2f;
+        float toY = THANOS_Y + sprites.thanos.getRegionHeight() * CHARACTER_SCALE / 2f;
+        for (int i = 0; i < HARVEST_SPARKS; i++) {
+            float p = MathUtils.clamp((t - i * 0.05f) / 0.8f, 0, 1);
+            if (p <= 0 || p >= 1) continue;
+            float fromX = ENEMY_X + (i * 53 % 120) - 60, fromY = ENEMY_Y - 40 + (i * 29 % 90);
+            float eased = p * p * (3 - 2 * p);
+            float x = MathUtils.lerp(fromX, toX, eased);
+            float y = MathUtils.lerp(fromY, toY, eased) + MathUtils.sin(p * MathUtils.PI) * (70 + i * 37 % 80);
+            float size = 16 * (1 - 0.5f * p);
+            shapes.setColor(Hud.INK);
+            shapes.rect(x - size / 2 - 2, y - size / 2 - 2, size + 4, size + 4);
+            color.set(InfinityStone.SOUL.rgba());
+            if (i % 3 == 0) color.lerp(Color.WHITE, 0.5f);
+            shapes.setColor(color);
+            shapes.rect(x - size / 2, y - size / 2, size, size);
         }
     }
 

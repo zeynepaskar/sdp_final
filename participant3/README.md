@@ -21,7 +21,7 @@ Design patterns: **Observer** and **Decorator**.
 
 **Decorator**
 - Each stone wraps an attack in its decorator (`InfinityStone.empower`).
-- `AbilityBook` builds 18 abilities (three per stone) by stacking decorators.
+- `AbilityBook` builds eight skills (two base ones and one per stone), each in a plain and an upgraded form, by stacking decorators. Every stone unlocks its skill; the full gauntlet upgrades all eight.
 
 The full write-up with code, UML and screenshots is in [docs/report/participant3-report.md](docs/report/participant3-report.md).
 

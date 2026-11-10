@@ -22,11 +22,11 @@ class AttackDecoratorTest {
         Attack combo = new RealityStoneDecorator(new TimeStoneDecorator(new PowerStoneDecorator(punch)));
 
         assertEquals(75, combo.damage());
-        assertTrue(combo.ignoresDefense());
+        assertTrue(combo.turnsDefenseIntoDamage());
         assertEquals(TimeStoneDecorator.SLOW_PERCENT, combo.slowPercent());
         assertFalse(combo.unblockable());
         assertEquals("Punch (50) + Power Stone (x1.5 damage) + Time Stone (counterattack -25%)"
-                + " + Reality Stone (ignores defense)", combo.description());
+                + " + Reality Stone (defense becomes damage)", combo.description());
     }
 
     @Test
@@ -40,12 +40,14 @@ class AttackDecoratorTest {
     }
 
     @Test
-    void realityStoneIgnoresDefense() {
+    void defenseBlocksSpaceIgnoresRealityUses() {
         HitResolver resolver = new HitResolver(new EventBus());
         FakeCombatant thanos = new FakeCombatant("Thanos", 1000, 1000, 0);
 
         assertEquals(35, resolver.resolve(thanos, new FakeCombatant("Champion", 500, 500, 30), punch));
         assertEquals(50, resolver.resolve(thanos, new FakeCombatant("Champion", 500, 500, 30),
+                new SpaceStoneDecorator(punch)));
+        assertEquals(65, resolver.resolve(thanos, new FakeCombatant("Champion", 500, 500, 30),
                 new RealityStoneDecorator(punch)));
     }
 

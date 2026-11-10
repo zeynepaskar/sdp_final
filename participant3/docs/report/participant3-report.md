@@ -128,12 +128,14 @@ Each of the six stones changes an attack in its own way:
 | Soul | lifesteal |
 | Power | more damage |
 | Time | weaker counterattack |
-| Space | unblockable |
-| Reality | ignores defense |
+| Space | unblockable: ignores defense |
+| Reality | defense becomes extra damage |
 | Mind | stun |
 
-There are 18 abilities (three per stone), and they combine effects. For example, *Rewind* deals half damage and
-undoes the enemy's last blow. A subclass for every combination (`PowerSoulAttack`, `PowerPowerAttack`, ...) would
+Thanos has eight skills: two base ones (*Punch*, *Titan's Fury*) and one per stone. Every new stone unlocks its
+skill; the sixth stone completes the gauntlet and upgrades all eight at once. Skills
+combine effects: *Rewind* deals half damage and undoes the enemy's last blow, and its upgrade *Time Loop* also
+weakens the enemy's next hit. A subclass for every combination (`PowerSoulAttack`, `PowerPowerAttack`, ...) would
 explode in number and could not be built at runtime.
 
 ### Solution
@@ -158,7 +160,7 @@ public interface Attack {
     default int lifestealPercent() { return 0; }
     default boolean ignoresDefense() { return false; }
     default int stunTurns() { return 0; }
-    // ... selfHeal, rewindPercent, unblockable, slowPercent
+    // ... selfHeal, rewindPercent, unblockable, turnsDefenseIntoDamage, slowPercent
 }
 ```
 
@@ -194,14 +196,16 @@ public final class PowerStoneDecorator extends AttackDecorator {
 ```
 
 Each stone knows its decorator (`InfinityStone.empower`). An ability is a function that stacks decorators, so all
-18 abilities are built from 10 decorator classes:
+16 forms of the eight skills are built from 10 decorator classes. An upgrade is simply one more layer:
 
 ```java
-new Ability("Energy Blast", POWER, 40, "The Power Stone twice over: more than double damage",
+new Ability("Energy Blast", POWER, 40, "The Power Stone twice over: x2.25 damage",
         attack -> POWER.empower(POWER.empower(attack)));
 
-new Ability("Rewind", TIME, 35, "Undoes the enemy's last blow and strikes at half strength",
-        attack -> new RewindDecorator(new DamageScaleDecorator(attack, 50), 100));
+new Ability("Rewind", TIME, 35, "Undoes the enemy's last blow, strikes at half strength",
+        AbilityBook::rewind);
+new Ability("Time Loop", TIME, 35, "Rewind, and the enemy's next hit is 25% weaker",
+        attack -> TIME.empower(rewind(attack)));
 ```
 
 ### UML
@@ -213,6 +217,9 @@ new Ability("Rewind", TIME, 35, "Undoes the enemy's last blow and strikes at hal
 - A new stone effect or ability is one small class or one line in `AbilityBook`. No existing class changes.
 - Effects combine freely. The test `AttackDecoratorTest.stonesStackWithoutAClassPerCombination` checks this.
 - `HitResolver` does not care how many layers an attack has; it only asks the final object.
+- The same questions describe enemy attacks. With the Mind Stone the battle shows *Foresight*: `TurnBattle.nextEnemyAttack`
+  returns the blow the enemy is about to make, and `EnemyIntent` reads its name, damage and effects (stun, weakening,
+  ignores defense, lifesteal) straight from the decorated `Attack`.
 
 ## 3. How the two patterns work together
 
@@ -220,7 +227,7 @@ The Decorator builds the attack, and the Observer reports what it did. The diagr
 *Energy Blast* ability:
 
 1. The Power Stone decorates the punch twice (66 → 99 → 148).
-2. `HitResolver` subtracts the defense and applies 138 damage.
+2. `HitResolver` lets the defense block its percent of the damage (10%) and applies 133 damage.
 3. The result goes to every observer through the `EventBus`.
 
 ![Sequence of one hit](../uml/hit-sequence.png)
@@ -230,10 +237,10 @@ Console output of the same turn, printed by the `ConsoleLog` observer:
 ```
 [ENERGY_CHANGED] Thanos energy: 60/100
 [ABILITY_USED] Thanos used Energy Blast (Power Stone)
-[DAMAGE] Champion received 138 damage
-[HEALTH_CHANGED] Champion health: 606/800
-[DAMAGE] Thanos received 80 damage
-[HEALTH_CHANGED] Thanos health: 840/1000
+[DAMAGE] Champion received 133 damage
+[HEALTH_CHANGED] Champion health: 608/800
+[DAMAGE] Thanos received 81 damage
+[HEALTH_CHANGED] Thanos health: 838/1000
 ```
 
 The battle works with fighters only through the `Combatant` interface, so it does not depend on where they come
@@ -241,15 +248,15 @@ from. The standalone battle demo of this module (`run-battle-demo.bat`) uses sim
 
 ## 4. Screenshots
 
-Battle with an Elder (the backdrop is tinted by the world's stone):
+Battle with the Champion (the backdrop is tinted by the world's stone; the enemy box shows HP, defense and boss status):
 
 ![Battle](img/battle.png)
 
-Choosing an ability; the description and energy cost come from the decorated ability:
+Choosing an ability in the 2x2 menu (a small gem marks stone skills); the description and energy cost come from the decorated ability:
 
 ![Ability menu](img/ability-menu.png)
 
-The result of Energy Blast: 138 damage instead of 56 for a plain punch:
+The result of Energy Blast: 133 damage instead of 59 for a plain punch; the Power Stone passive highlights the number ("Might +10%"):
 
 ![Ability result](img/ability-result.png)
 
@@ -272,7 +279,7 @@ The module has 72 JUnit 5 tests, and all of them pass (`mvn -f participant3/pom.
 - the Power Stone raises damage and extends the description;
 - stones stack without a class per combination;
 - decorators keep the other effects of the wrapped attack;
-- the Reality Stone ignores defense;
+- defense blocks a plain hit, the Space Stone ignores it, the Reality Stone turns it into damage;
 - the Soul Stone heals the attacker;
 - a decorator needs something to wrap.
 
@@ -286,7 +293,7 @@ The module has 72 JUnit 5 tests, and all of them pass (`mvn -f participant3/pom.
 ## 6. Conclusion and further work
 
 Observer keeps the game logic independent of the screen: the same battle drives the libGDX battle screen,
-the HUD and the console log. Decorator turns six stones and 18 abilities into ten small classes that combine at
+the HUD and the console log. Decorator turns six stones and eight upgradable skills into ten small classes that combine at
 runtime. Together they let a new stone effect or a new screen be added without touching the battle code.
 
 Further work:

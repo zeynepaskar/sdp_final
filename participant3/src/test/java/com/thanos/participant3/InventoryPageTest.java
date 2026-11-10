@@ -28,17 +28,16 @@ class InventoryPageTest {
     }
 
     @Test
-    void theCursorStaysOnTheListAndScrolls() {
+    void theCursorStaysOnTheList() {
         for (InfinityStone stone : InfinityStone.values()) inventory.addStone(stone);
 
         page.move(-3);
         assertEquals(0, page.cursor());
-        page.move(InventoryPage.VISIBLE_ROWS);
-        assertEquals(InventoryPage.VISIBLE_ROWS, page.cursor());
-        assertEquals(1, page.firstRow());
+        page.move(3);
+        assertEquals(3, page.cursor());
         page.move(100);
-        assertEquals(17, page.cursor());
-        assertEquals(18 - InventoryPage.VISIBLE_ROWS, page.firstRow());
+        assertEquals(7, page.cursor());
+        assertEquals(0, page.firstRow());
 
         page.reset();
         assertEquals(0, page.cursor());
@@ -46,10 +45,10 @@ class InventoryPageTest {
     }
 
     @Test
-    void anEmptyListKeepsTheCursorAtTheTop() {
+    void withoutStonesOnlyTheBaseAbilitiesAreListed() {
         page.move(5);
 
-        assertEquals(0, page.cursor());
-        assertTrue(page.abilities().isEmpty());
+        assertEquals(1, page.cursor());
+        assertEquals(2, page.abilities().size());
     }
 }

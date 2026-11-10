@@ -8,6 +8,8 @@ import java.util.Map;
 
 /** Applies a decorated attack to a target and publishes the result; handles Portal and rewind. */
 public final class HitResolver {
+    public static final int MAX_DEFENSE = 80;
+
     private final EventBus events;
     private final Portal portal;
     private final Map<String, Integer> lastWound = new HashMap<>();
@@ -26,7 +28,7 @@ public final class HitResolver {
         if (attacker == null || target == null || attack == null) {
             throw new IllegalArgumentException("Attacker, target and attack are required");
         }
-        int dealt = damageAgainst(attack, target);
+        int dealt = damageAgainst(attack, target.defense());
         if (portal.opensFor(target)) {
             lastWound.put(target.name(), 0);
             sendBack(attacker, target, dealt);
@@ -51,10 +53,22 @@ public final class HitResolver {
     }
 
     public static int damageAgainst(Attack attack, Combatant target) {
-        if (attack.ignoresDefense() || attack.unblockable()) return attack.damage();
-        int defense = Math.max(0, Math.min(80, target.defense()));
-        return (int) ((long) attack.damage() * (100 - defense) / 100);
+        return damageAgainst(attack, target.defense());
     }
+
+    /** Defense is a percent of damage blocked, capped at 80. */
+    public static int applyDefense(int damage, int defense) {
+        return damage * (100 - clampDefense(defense)) / 100;
+    }
+
+    /** Reality turns defense into extra damage; Space and Reality pass through it; anything else is blocked. */
+    public static int damageAgainst(Attack attack, int defense) {
+        if (attack.turnsDefenseIntoDamage()) return attack.damage() * (100 + clampDefense(defense)) / 100;
+        if (attack.ignoresDefense() || attack.unblockable()) return attack.damage();
+        return applyDefense(attack.damage(), defense);
+    }
+
+    private static int clampDefense(int defense) { return Math.max(0, Math.min(MAX_DEFENSE, defense)); }
 
     public int lastWound(Combatant combatant) { return lastWound.getOrDefault(combatant.name(), 0); }
 

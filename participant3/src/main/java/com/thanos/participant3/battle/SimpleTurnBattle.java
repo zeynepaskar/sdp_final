@@ -6,6 +6,7 @@ import com.thanos.participant3.patterns.decorator.BasicAttack;
 import com.thanos.participant3.patterns.decorator.HitResolver;
 import com.thanos.participant3.patterns.observer.EventBus;
 import com.thanos.participant3.patterns.observer.GameEventType;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 /** Stand-in TurnBattle with a fixed enemy power; every blow goes through HitResolver. */
@@ -46,8 +47,12 @@ public final class SimpleTurnBattle implements TurnBattle {
 
     public OptionalInt nextEnemyDamage() {
         if (state.isOver()) return OptionalInt.empty();
-        if (stunTurns > 0) return OptionalInt.of(0);
-        return OptionalInt.of(HitResolver.damageAgainst(enemyStrike(), thanos));
+        return OptionalInt.of(upcomingEnemyAttack().map(attack -> HitResolver.damageAgainst(attack, thanos.defense())).orElse(0));
+    }
+
+    public Optional<Attack> upcomingEnemyAttack() {
+        if (state.isOver() || stunTurns > 0) return Optional.empty();
+        return Optional.of(enemyStrike());
     }
 
     public void playerAttack(Attack attack) {

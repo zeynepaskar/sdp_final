@@ -10,7 +10,7 @@ public enum InfinityStone {
     POWER("Power Stone", 0x8E44ADFF, "Raises damage", PowerStoneDecorator::new),
     TIME("Time Stone", 0x27AE60FF, "Weakens the enemy's counterattack", TimeStoneDecorator::new),
     SPACE("Space Stone", 0x2E86DEFF, "Makes attacks unblockable", SpaceStoneDecorator::new),
-    REALITY("Reality Stone", 0xE74C3CFF, "Ignores enemy defense", RealityStoneDecorator::new),
+    REALITY("Reality Stone", 0xE74C3CFF, "Turns enemy defense into damage", RealityStoneDecorator::new),
     MIND("Mind Stone", 0xF1C40FFF, "Stuns the enemy", MindStoneDecorator::new);
 
     private final String displayName;
